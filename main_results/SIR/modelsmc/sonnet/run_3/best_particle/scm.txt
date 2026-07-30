@@ -1,0 +1,5 @@
+- Variables: S (susceptible), I (infected), R (recovered), N = S+I+R (fixed population)
+- S → I: Binomial with p_infection = 1-exp(-beta·I/N), standard discrete-time SIR transition
+- I → R: Binomial with p_recovery = 1-exp(-gamma), exponential waiting-time approximation
+- Parameters: [beta, gamma] clipped to COVID-realistic [0.05, 0.6] and [0.05, 0.20]
+- Assumptions: closed population, no re-infection, discrete daily steps, homogeneous mixing, Binomial noise only

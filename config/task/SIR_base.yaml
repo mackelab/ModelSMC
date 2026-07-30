@@ -1,0 +1,8 @@
+metric_to_optimize: neg_avg_log_marginal_NLE
+compute_parameter_estimate: false
+optimization_direction: min
+termination_val: null
+plotting: True
+learnable_summary_statistics: False
+n_samples_wsd_mmd: 200 # Value from https://github.com/samholt/generative-simulations/blob/master/libs/SIR/env.py line 104
+mmd_sigma: 0.2 # Value from https://github.com/samholt/generative-simulations/blob/master/config/config.yaml line 29

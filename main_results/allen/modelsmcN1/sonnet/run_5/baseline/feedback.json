@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from `params` but are never used anywhere in the simulation \u2014 all editable sections remain as empty TODO blocks. The model therefore runs as a plain three-current HH neuron regardless of what the inference engine proposes for those parameters, making it impossible to fit the experimental data that requires additional conductances.",
+  "issues": [
+    {
+      "description": "gbar_X1 (and optionally gbar_X2, param_i, param_j) are extracted but never wired into the ODE. As a result the simulator has no way to capture the dynamics that distinguish the target recordings from standard HH, explaining the high neg_avg_log_marginal_NLE (~26). For regular tonic spiking without bursting, an M-type slow non-inactivating K+ current (IM) is the canonical missing channel: it shapes interspike intervals and controls adaptation without producing bursts.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks inside the simulation loop and the state-variable initialisation area",
+      "suggestion": "1) Add M-current kinetics (single activation gate p, no inactivation): define `alpha_p(x) = 3.3e-3 * Exp(0.04*(x - Vt + param_i))` and `beta_p(x) = 3.3e-3 * Exp(-0.04*(x - Vt + param_i))` where param_i acts as a voltage-shift tunable parameter. 2) Allocate state tensor `p = torch.zeros(...)`, initialise `p[:,0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`. 3) In the loop compute `a_p, b_p = alpha_p(V[:,i-1]), beta_p(V[:,i-1])` and update `p[:,i]` with the same exponential-Euler formula used for n/m/h. 4) Add `gbar_X1 * p[:,i-1]` to the `tau_V_inv` numerator and `gbar_X1 * p[:,i-1] * E_K` to the `V_inf` numerator. This uses gbar_X1 and param_i, keeping the model parsimonious."
+    },
+    {
+      "description": "param_i and param_j are negated at extraction (`param_i = -params[:,8]`) making them negative numbers (range ~ [-150, 0] and [-3000, 0] respectively). If they are intended to serve as voltage thresholds or reversal potentials in kinetic equations this sign inversion is correct, but if they are meant to be positive time constants or rate multipliers the negation will produce non-physical (negative) values and should be removed.",
+      "severity": "major",
+      "location": "Lines: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Decide the physical meaning before using these parameters. For a voltage-shift parameter in M-current kinetics (e.g. half-activation offset), keeping the negation is fine. For a time-constant parameter, remove the minus sign (`param_j = params[:,9].float()`) so the inferred value stays positive. Document the intended units (mV for voltage shifts, ms for time constants) as a comment next to each extraction line."
+    }
+  ]
+}

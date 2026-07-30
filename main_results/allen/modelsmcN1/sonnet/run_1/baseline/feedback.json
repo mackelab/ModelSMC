@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) are allocated and parameters extracted (gbar_X1, gbar_X2, param_i, param_j) but are never used anywhere in the simulation loop. The extracted conductances contribute zero current to tau_V_inv and V_inf, making these parameters completely inert. For a neuron exhibiting regular tonic spiking, a slow K+ M-type current (Kv7/KCNQ) is the most parsimonious addition: it controls spike-frequency adaptation without introducing bursting, and its half-activation voltage (~-35 mV) can be tuned via param_i.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never referenced in the kinetics, tau_V_inv, V_inf, or state-variable update sections. The simulator is therefore identical to a plain three-channel HH model regardless of what the inference engine places in those parameter slots, causing the high NLE loss.",
+      "severity": "critical",
+      "location": "tau_V_inv and V_inf computations inside the simulation loop; all four 'BEGIN EDITABLE SECTION' blocks are empty",
+      "suggestion": "Implement an M-type slow K+ current using gbar_X1 (conductance) and param_i (half-activation voltage). Add kinetics: `p_inf_M = 1/(1+exp(-(V - param_i)/10.0))` and `tau_p_M = 1/(3.3*(exp((V-param_i)/40.0)+exp(-(V-param_i)/20.0)))+1.0` (adjust constants as needed). Allocate a state variable `p_M`, initialize it at `p_inf_M(V[:,0])`, update it each step like n/m/h, then add `gbar_X1 * p_M[:, i-1]` to tau_V_inv and `gbar_X1 * p_M[:, i-1] * E_K` to the numerator of V_inf. This directly links the inferred parameters to the voltage dynamics."
+    },
+    {
+      "description": "With no additional channels active, the plain HH model cannot match the resting potential distribution (mean, std), stimulation-period mean voltage, or higher-order statistics (skewness, kurtosis) of a neuron that likely has sub-threshold M-current or leak-like conductances shaping the interspike trajectory.",
+      "severity": "major",
+      "location": "V_inf numerator \u2014 g_leak * E_leak term is the only subthreshold shaping mechanism",
+      "suggestion": "After adding the M-current as above, consider also using gbar_X2 with a simple persistent (non-inactivating) Na+ window current or an A-type K+ current only if residual metric errors remain. Keep gbar_X2 disabled (set to near-zero by the prior) unless a second channel demonstrably reduces NLE; the description explicitly requests model parsimony and warns against bursting channels."
+    }
+  ]
+}

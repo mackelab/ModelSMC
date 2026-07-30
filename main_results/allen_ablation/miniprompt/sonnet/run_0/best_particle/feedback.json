@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator ignores two parameters \u2014 params[:,7] (gbar_X2) and params[:,9] (param_j) \u2014 which are explicitly reserved for a second voltage-gated channel. This missing channel is the dominant driver of the high NLE scores (neg_avg_log_marginal_NLE=26), since the simulated voltage traces systematically diverge from experimental recordings whenever that conductance is non-negligible.",
+  "issues": [
+    {
+      "description": "params[:,7] (gbar_X2) and params[:,9] (param_j) are never used. A second ion channel (e.g., a slow/persistent inward current or A-type K+ current) parameterised by these two values is absent from both the current equation (tau_V_inv / V_inf numerator) and the gating variable update loop. Every simulation run with non-zero gbar_X2 produces the wrong waveform, causing the large log-likelihood penalty.",
+      "severity": "critical",
+      "location": "Parameter extraction block (lines with '# params[:, 7] (gbar_X2) unused' and '# params[:, 9] (param_j) unused') and the simulation loop where tau_V_inv and V_inf are assembled.",
+      "suggestion": "Extract the missing parameters: `gbar_X2 = params[:,7].float()` and `param_j = -params[:,9].float()`. Add a Boltzmann-gated channel with the same structural pattern as the M-current: define `q_inf(x) = 1/(1+Exp(-(x-param_j)/10.0))` and `tau_q(x) = clamp(1/(3.3*Exp((x-param_j)/20)+Exp(-(x-param_j)/20)), min=0.1)`, allocate a gate tensor `q`, initialise `q[:,0]=q_inf(V[:,0])`, update it each step as `q[:,i] = q_inf_v + (q[:,i-1]-q_inf_v)*Exp(-tstep/tau_q_v)`, and add `gbar_X2*q[:,i-1]` to tau_V_inv and `gbar_X2*q[:,i-1]*E_K` (or E_Na if it is an inward channel) to the V_inf numerator."
+    },
+    {
+      "description": "The M-current time constant tau_p uses a raw reciprocal of two exponentials without the factor-of-1000 ms rescaling that is standard in many HH-M formulations. As written, tau_p saturates near ~0.1\u20130.3 ms instead of the physiological ~100\u2013300 ms range, making the M-current behave like a fast channel and degrading slow-adaptation accuracy.",
+      "severity": "major",
+      "location": "tau_p function definition inside forward().",
+      "suggestion": "Multiply the raw expression by 1000 before clamping: `raw = 1000.0 / (3.3*Exp((x-param_i)/20.0) + Exp(-(x-param_i)/20.0))`, then `return torch.clamp(raw, min=0.1)`. This restores the biologically correct slow time scale (~100 ms) for muscarinic adaptation."
+    }
+  ]
+}

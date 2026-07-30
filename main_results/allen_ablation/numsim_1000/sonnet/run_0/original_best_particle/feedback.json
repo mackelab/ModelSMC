@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator misallocates the parameter slots: three parameters (params[6], params[8], params[9]) are assigned to the X1 M-current channel, but the specification allows only two tunable parameters per slot. This means params[9] is being co-opted from what should be the X2 slot's additional parameter, leaving X2 structurally broken (params[7] conductance with no kinetic parameter). The poor NLE score (26.5) reflects both this structural mismatch and the fact that a single M-current channel with potentially misbound parameters cannot capture the full variance, skewness, and kurtosis of the observed voltage distribution.",
+  "issues": [
+    {
+      "description": "Three parameters (params[6], params[8], params[9]) are bound to X1 instead of the required two. According to the slot specification ('each slot provides two tunable parameters'), X1 should use params[6] (conductance) and params[8] (one kinetic param), while X2 should use params[7] (conductance) and params[9] (one kinetic param). By consuming params[9] as tau_max_Km for X1, the code leaves X2 with only a conductance and no kinetic parameter, making X2 effectively unusable and structurally malformed.",
+      "severity": "critical",
+      "location": "Parameter assignment block: `gbar_Km = params[:, 6]`, `V_half_Km = -params[:, 8]`, `tau_max_Km = params[:, 9]`",
+      "suggestion": "Restrict X1 to exactly two parameters: params[6] as gbar_Km and params[8] as V_half_Km, then fix tau_max_Km to a physiologically appropriate constant (e.g., 80.0 ms). Activate X2 using params[7] as a second channel conductance and params[9] as its kinetic parameter. A suitable X2 candidate consistent with tonic spiking (no bursting) is a persistent sodium current INaP: `gbar_NaP = params[:, 7]`, with `V_half_NaP = -params[:, 9]` (half-activation ~-50 mV), steady-state `q_inf = 1/(1+exp(-(V-V_half_NaP)/5))`, and a fixed slow time constant (~5 ms). INaP boosts subthreshold depolarisation, improves mean voltage and spike count statistics, and does not cause bursting."
+    },
+    {
+      "description": "The M-current time constant tau_p_fn collapses to near-zero during action potentials (V >> V_half_Km). With V_half_Km \u2248 -35 mV and peak AP voltage \u2248 +40 mV, the argument to cosh is (75/20) = 3.75, giving cosh \u2248 21 and tau_p \u2248 tau_max/21. If tau_max is inferred to be small (e.g., 20 ms), tau_p at AP peak is < 1 ms \u2014 faster than the dt timestep \u2014 making the gate quasi-instantaneous and removing the slow-adaptation benefit that motivates the M-current. This degrades the regularisation of inter-spike intervals and worsens the fit to spike count and voltage statistics.",
+      "severity": "major",
+      "location": "Function `tau_p_fn`: `return tau_max_Km / (torch.cosh((x - V_half_Km) / 20.0) + 1e-7)`",
+      "suggestion": "Use a voltage-independent fixed time constant or impose a lower bound on tau_p to prevent collapse during spikes: `tau_p = torch.clamp(tau_max_Km / (torch.cosh((x - V_half_Km) / 20.0) + 1e-7), min=5.0)`. Alternatively, after fixing X1 to two parameters with tau_max_Km set to a constant (e.g., 80.0 ms), replace the bell-shaped form with a simpler asymmetric sigmoid: `tau_p = 1.0 / (0.001 * Exp(-0.09*(x+30.0)) + 0.001 * Exp(0.09*(x+30.0)))` (Wang 1998 formulation), which keeps tau_p \u2265 ~25 ms across physiological voltage ranges and preserves the slow-adaptation character of the M-current."
+    }
+  ]
+}

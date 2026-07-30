@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator extracts additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) but never uses them in the simulation \u2014 all four 'EDITABLE SECTION' blocks remain empty. This means the inference procedure assigns values to these parameters while the model completely ignores them, causing a persistent mismatch in spike count, resting potential, and voltage-distribution statistics (mean/variance/skewness/kurtosis during stimulation).",
+  "issues": [
+    {
+      "description": "gbar_X1 / gbar_X2 / param_i / param_j are extracted from params but no channel kinetics or current contributions are ever added to tau_V_inv, V_inf, or the state-variable update loop. The model is therefore effectively a plain three-channel HH regardless of what the inference engine chooses for those four parameters, explaining the large neg_log_marginal_NLE (~262).",
+      "severity": "critical",
+      "location": "All four '# ===== BEGIN EDITABLE SECTION =====' blocks (kinetics, state variables, init, loop update, tau_V_inv/V_inf terms)",
+      "suggestion": "Implement an M-type (slow, non-inactivating) K+ current using the X1 slot. Add the following: (1) Kinetics block \u2014 `def w_inf(x): return 1.0/(1+Exp(-(x-param_i)/10.0))` and `def tau_w_fn(x): return 1.0/(3.3*(Exp((x-param_i)/40.0)+Exp(-(x-param_i)/20.0)))`. (2) State variable \u2014 `w = torch.zeros((batch_size, time_steps), device=device)`. (3) Init \u2014 `w[:, 0] = w_inf(V[:, 0])`. (4) Loop \u2014 compute `w_inf_v = w_inf(V[:,i-1])` and `tau_w_v = tau_w_fn(V[:,i-1])`, then update `w[:,i] = w_inf_v + (w[:,i-1]-w_inf_v)*Exp(-tstep/tau_w_v)`. (5) In tau_V_inv add `+ w[:,i-1]*gbar_X1`. (6) In V_inf add `+ w[:,i-1]*gbar_X1*E_K`. This gives the inference engine a real slow-K+ conductance to tune, which regularises inter-spike intervals, controls mean voltage during stimulation, and shapes the voltage distribution without introducing bursting."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (`-params[:, 8]` and `-params[:, 9]`), making them negative even though the raw inference range is [1e-4, 150] / [1e-4, 3000]. If param_i is intended as the half-activation voltage of the M-current (typically around -35 mV), negating a positive sample produces the correct sign, but this implicit sign convention is fragile and should be made explicit in a comment. More importantly, if only one channel is needed, param_j should be left unused or used as the time-constant scale to avoid confusing the inference.",
+      "severity": "minor",
+      "location": "Parameter extraction block, lines `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Add a comment confirming intent, e.g. `# param_i: half-activation voltage for M-current (negative because raw param is positive)`. If param_j is not needed, do not reference it anywhere in the computation so the sampler does not waste degrees of freedom. Alternatively use `param_j` as the time-constant multiplier for the M-current (`tau_w` scale) if a second tunable parameter is beneficial \u2014 but only if performance requires it, to maintain parsimony."
+    }
+  ]
+}

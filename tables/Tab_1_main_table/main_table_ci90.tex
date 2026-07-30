@@ -1,0 +1,24 @@
+\begin{table}[ht]
+\centering
+\caption{}
+\setlength{\tabcolsep}{0pt}
+\begin{tabularx}{\textwidth}{>{\centering\arraybackslash}p{1.0cm} *{3}{Y}ccc}
+\toprule
+ & \multicolumn{1}{c}{FunSearch+} & \multicolumn{1}{c}{ModelSMC} & \multicolumn{1}{c}{ModelSMC $N=1$} \\
+ & Sonnet 4.6 & Sonnet 4.6 & Sonnet 4.6 \\
+\midrule
+ & \multicolumn{3}{c}{$-\log p(x_o|m) (\downarrow)$} \\
+\midrule
+SIR & -48794.12 {\scriptsize [-51910.18, -48293.60]} & -45834.78 {\scriptsize [-50184.76, -38023.12]} & -57028.36 {\scriptsize [-59613.61, -47127.31]} \\
+HH & 254.58 {\scriptsize [250.46, 259.52]} & 256.00 {\scriptsize [255.05, 260.50]} & 243.27 {\scriptsize [232.39, 258.08]} \\
+Kidney & N/A & 42.85 {\scriptsize [41.54, 45.62]} & 36.54 {\scriptsize [34.95, 38.31]} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%Settings for table computation:
+%ci          = 90.0 percent
+%n_bootstrap = 10000
+%metrics     = ['neg_log_marginal_NLE']  (direction: min)
+%with_ci     = True
+%folder     = ../../main_results

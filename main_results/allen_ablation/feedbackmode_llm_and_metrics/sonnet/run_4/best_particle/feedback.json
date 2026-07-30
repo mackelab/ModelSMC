@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Two compounding issues degrade model fit. First, `tau_M = -params[:, 9]` lacks a lower-bound clamp, so near-zero values produce `Exp(-tstep / tau_M)` \u2192 exp(-\u221e) = 0, collapsing M-gate dynamics to instantaneous Boltzmann and breaking gradient flow. Second, the entire X2 parameter slot (`params[:, 7]` declared as `gbar_X2`) is left unused while the NLE remains high, indicating that a single additional channel is insufficient to simultaneously match all seven summary statistics (spike count, resting mean/std, stimulation mean/variance/skewness/kurtosis).",
+  "issues": [
+    {
+      "description": "tau_M is computed as `-params[:, 9]` without any minimum clamp. If the inferred parameter approaches zero the expression `Exp(-tstep / tau_M)` evaluates to `exp(-inf) = 0`, making the M-gate track p_inf instantaneously every step. This eliminates the slow-kinetics property that is the physiological motivation for the M-current and produces a discontinuous gradient during inference, stalling parameter optimisation.",
+      "severity": "critical",
+      "location": "p[:, i] = p_ss + (p[:, i - 1] - p_ss) * Exp(-tstep / tau_M)",
+      "suggestion": "Clamp tau_M to a physiologically valid minimum before the integration loop: `tau_M = (-params[:, 9]).clamp(min=5.0)` (5 ms lower bound keeps kinetics slow while preventing division-by-near-zero). Additionally add a safety clamp on the exponent argument: replace `Exp(-tstep / tau_M)` with `Exp(torch.clamp(-tstep / tau_M, min=-500.0))`."
+    },
+    {
+      "description": "The X2 conductance slot (`params[:, 7]`) is entirely unused, effectively reducing the model to a 9-parameter fit. The remaining mismatch in higher-order statistics (variance, skewness, kurtosis) and stimulation-period mean voltage suggests a second channel mechanism is needed. A persistent (slowly inactivating) sodium current I_NaP, parameterised by `gbar_NaP = params[:, 7]` and a fixed half-activation near -55 mV, would lower threshold, increase mean voltage during stimulation, and improve spike-count match without producing bursting, since it only provides a subthreshold depolarising boost.",
+      "severity": "major",
+      "location": "# params[:,7] (gbar_X2) left unused \u2014 parsimony principle",
+      "suggestion": "Implement a persistent Na+ current using the available X2 gbar slot: `gbar_NaP = params[:, 7]`, with fixed steady-state activation `q_inf = 1 / (1 + Exp(-(V - (-55.0)) / 5.0))` (slope 5 mV, half-activation -55 mV), and add the term `+ gbar_NaP * q_inf` to tau_V_inv and `+ gbar_NaP * q_inf * E_Na` to V_inf. No additional tunable parameters are required, preserving the two-slot budget. This subthreshold inward current adjusts mean stimulation voltage and spike threshold without burst-inducing fast transients."
+    }
+  ]
+}

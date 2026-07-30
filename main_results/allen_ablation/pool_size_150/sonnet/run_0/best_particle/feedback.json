@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "All TODO sections in the editable blocks are empty: the parameters gbar_X1, gbar_X2, param_i, and param_j are extracted but never used in any computation. The simulator runs as a pure 3-channel HH model (Na, K, leak) despite pre-allocating slots for additional channels. This is the primary reason for the high NLE (~25.5 per condition), as the base HH model cannot replicate the resting potential, subthreshold variance, and precise inter-spike intervals seen in the experimental recordings.",
+  "issues": [
+    {
+      "description": "Parameters gbar_X1, gbar_X2, param_i, param_j are extracted but completely absent from all five TODO sections (kinetics definitions, state variable declarations, initialization, loop computation, and loop update). The model is therefore a vanilla HH with 10 parameters but only 6 are functional, making inference degenerate.",
+      "severity": "critical",
+      "location": "All five '===== BEGIN EDITABLE SECTION =====' blocks in the forward() method",
+      "suggestion": "Implement a slow M-type potassium current (Kv7/KCNQ) using the X1 slot. (1) Kinetics section: define `p_inf = lambda x: 1.0/(1.0+Exp(-(x - param_i)/9.0))` and `tau_p = lambda x: 1.0/(0.001*(x - param_i + 30.0).abs() + 0.01)` clipped to a minimum of ~20 ms. (2) State variable: add `p = torch.zeros((batch_size, time_steps), device=device)`. (3) Init: `p[:, 0] = p_inf(V[:, 0])`. (4) Loop computation: compute `p_ss = p_inf(V[:, i-1])` and an effective slow tau. (5) tau_V_inv: add `+ gbar_X1 * p[:, i-1]`; V_inf numerator: add `+ gbar_X1 * p[:, i-1] * E_K`. (6) Loop update: `p[:, i] = p_ss + (p[:, i-1] - p_ss) * Exp(-tstep / tau_p_val)`. The M-current produces spike-frequency adaptation without bursting, consistent with the tonic spiking data description."
+    },
+    {
+      "description": "param_i is set to `-params[:, 8]` placing it in roughly (-150, 0) mV and param_j to `-params[:, 9]` placing it in (-3000, 0). If param_j is intended as a time-constant it is in an unrealistic range and will destabilize inference unless clamped.",
+      "severity": "major",
+      "location": "Parameter extraction block: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Use param_i exclusively as the half-activation voltage for the M-current gate (typical range -50 to -20 mV, consistent with the negated extraction). Leave gbar_X2 and param_j unused for now to maintain parsimony (the system description explicitly states to add only one channel if necessary). If a second channel is later required, param_j could serve as a slow time-constant offset clamped via `tau = torch.clamp(param_j.abs(), 10.0, 500.0)` to prevent numerical blow-up."
+    }
+  ]
+}

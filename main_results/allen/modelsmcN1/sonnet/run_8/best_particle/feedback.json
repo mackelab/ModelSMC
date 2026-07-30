@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The model achieves NLE 24.2, a new best surpassing the previous record of 24.5 (iter-90). The primary remaining bottleneck is that the tau_p lower bound of 100ms may be overly restrictive, preventing SBI from exploring faster M-current adaptation timescales that could better fit recordings with rapid spike-frequency adaptation. The ironclad rules only prohibit the UPPER bound from falling below 300ms; the 100ms lower bound is not locked and represents an untested hypothesis.",
+  "issues": [
+    {
+      "description": "The tau_p_base lower bound of 100ms prevents SBI from sampling M-gate time constants in the biophysically plausible faster range (10\u2013100ms). Real KCNQ/Kv7 channels can deactivate on timescales of 20\u201380ms at depolarised potentials. If any experimental recordings exhibit rapid adaptation (spike-count reduction within the first 2\u20133 spikes), the model is structurally unable to reproduce this because the minimum adaptation window is 100ms. This mismatch would inflate errors on spike-count and stimulation-period voltage statistics simultaneously.",
+      "severity": "major",
+      "location": "tau_p_base = 100.0 + torch.clamp(params[:, 8].float(), min=0.0, max=150.0) / 150.0 * 200.0",
+      "suggestion": "Reduce the lower bound from 100ms to 20ms while keeping the upper bound at 300ms: `tau_p_base = 20.0 + torch.clamp(params[:, 8].float(), min=0.0, max=150.0) / 150.0 * 280.0`. This expands the searchable range from [100,300]ms to [20,300]ms without violating any ironclad rule (only the upper-bound floor of 300ms is locked). The raw param range [1e-4, 150] and the FLAT scalar formulation are preserved exactly."
+    },
+    {
+      "description": "gbar_M is used DIRECT with no internal clamp, which is correct per iter-93. However, since the SBI prior may occasionally propose negative values for params[:,6], a negative gbar_M would make g_M_eff negative, effectively adding an anomalous inward current via E_K_M=-90mV whenever V > -90mV. This corrupts tau_V_inv (can become negative), leading to divergent exponential Euler steps. Such degenerate trajectories produce extreme summary statistic outliers that distort the NLE objective without informing the posterior, effectively wasting simulation budget.",
+      "severity": "minor",
+      "location": "gbar_M = params[:, 6].float()  and  tau_V_inv = (g_Na_eff + g_K_eff + g_M_eff + g_NaP_eff + g_leak) / C",
+      "suggestion": "Guard tau_V_inv against physically impossible (negative total conductance) values by applying a floor only at a negligibly small positive value on the SUMMED conductance before dividing, rather than clamping gbar_M itself: `tau_V_inv = torch.clamp(g_Na_eff + g_K_eff + g_M_eff + g_NaP_eff + g_leak, min=1e-6) / C`. This is not a gate clamp or V clamp (the prohibited operations from iters 70\u201371), but a physical safeguard on total membrane conductance that prevents NaN/Inf propagation from degenerate parameter proposals without altering behaviour for valid (positive gbar_M) samples."
+    }
+  ]
+}

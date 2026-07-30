@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current implementation spreads its three parameters across both X1 and X2 slots (params[:,6], params[:,7], params[:,9]), leaving params[:,8] completely unused and consuming the entire X2 slot on a single channel. This prevents adding a second channel with tunable parameters. With neg_avg_log_marginal_NLE of 26.6, the M-current alone is insufficient to match all target summary statistics \u2014 particularly the resting-period statistics (mean, std of resting potential) and the higher-order voltage moments (skewness, kurtosis) which require an additional mechanism affecting subthreshold dynamics.",
+  "issues": [
+    {
+      "description": "params[:,8] (X1 slot param_i) is declared unused, and tau_KM is assigned to params[:,9] (X2 slot param_j), effectively consuming both X1 and X2 slots for one channel. This blocks adding a second tunable channel. Consolidate the M-current into a single slot: use params[:,6]=gbar_KM and params[:,8]=tau_KM (both within X1), freeing params[:,7] and params[:,9] for a second channel. This consolidation costs nothing in expressivity (slope factor 10 mV stays fixed) and unlocks the second slot.",
+      "severity": "critical",
+      "location": "Parameter allocation block: `V_half_M = -params[:, 7]` and `tau_KM = params[:, 9]` \u2014 the M-current should only occupy X1 (params[:,6] and params[:,8])",
+      "suggestion": "Reassign: gbar_KM=params[:,6], tau_KM=params[:,8] (X1 slot complete). Then allocate X2 slot (params[:,7]=conductance, params[:,9]=second parameter) to a hyperpolarization-activated current (Ih/HCN): `I_h = gbar_h * r * (V - E_h)` where gbar_h=params[:,7], E_h ~ -30 mV fixed, with `r_inf = 1/(1+exp((V+75)/5.5))` and `tau_r = params[:,9]`. Ih is non-bursting, activates at rest, and directly improves resting-potential mean/std and subthreshold voltage distribution moments."
+    },
+    {
+      "description": "The V_half_M parameterization uses `V_half_M = -params[:,7]` where params[:,7] has a conductance-like positive range. This inverted, constrained parameterization makes gradient-based optimization difficult and the inference can get stuck if params[:,7] drifts toward zero (making V_half_M \u2248 0 mV, far from physiological -35 mV). Moreover, the slope factor is fixed at 10 mV without justification from inference \u2014 it should either be freed within the existing slot or verified not to cause identifiability issues with the other M-current parameters.",
+      "severity": "major",
+      "location": "`V_half_M = -params[:, 7].float()` and `w_inf` using fixed slope 10.0",
+      "suggestion": "After consolidating M-current into X1 slot (gbar_KM=params[:,6], tau_KM=params[:,8]), use params[:,7] for the second channel's conductance with a natural positive mapping. For the M-current V_half, fix it at a physiologically grounded value (e.g., -35 mV) since it is not one of the two allocated tunable parameters for X1 \u2014 this also reduces the risk of overparameterization and improves posterior identifiability. The freed params[:,9] then cleanly parameterizes the second channel's time constant."
+    }
+  ]
+}

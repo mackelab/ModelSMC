@@ -1,0 +1,5 @@
+- Variables: S (susceptible), I (infected), R (recovered), N = S+I+R (conserved population)
+- parameters[0] = beta: transmission rate ∈ [0.05, 1.5]; parameters[1] = gamma: recovery rate ∈ [0.01, 0.3]
+- New infections ~ Binomial(S, 1 - exp(-beta·I/N)); New recoveries ~ Binomial(I, 1 - exp(-gamma))
+- Causal flow: S → I → R; recoveries drawn only from pre-step I count; newly infected cannot recover same step
+- Assumptions: closed population, homogeneous mixing, discrete-time stochastic SIR with proper Binomial noise

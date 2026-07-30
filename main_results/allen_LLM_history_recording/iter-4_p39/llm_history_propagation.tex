@@ -1,0 +1,1217 @@
+\noindent\textbf{Prompt}\par\smallskip
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={System},
+  colback=SystemBg, colframe=SystemFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+Your input fields are:\\{}
+1. `signature\_description` (str): Simulator I/O description\\{}
+2. `task\_description` (str): Task considerations\\{}
+3. `base\_simulator` (str): Base code structure\\{}
+Your output fields are:\\{}
+1. `scm\_definition` (str): Compact SCM summary as a bullet list (max 5 lines): key variables, their causal dependencies, and core assumptions. No equations or verbose descriptions.\\{}
+2. `simulator\_code` (str): Improved mechanistic simulator with substantial structural differences from prior examples.\\{}
+3. `feedback` (Union[str, NoneType]): Optional feedback. Only generate if requested.\\{}
+All interactions will be structured in the following way, with the appropriate values filled in.
+\smallskip
+\par\noindent [[ \#\# signature\_description \#\# ]]\\
+\noindent
+\{signature\_description\}
+\smallskip
+\par\noindent [[ \#\# task\_description \#\# ]]\\
+\noindent
+\{task\_description\}
+\smallskip
+\par\noindent [[ \#\# base\_simulator \#\# ]]\\
+\noindent
+\{base\_simulator\}
+\smallskip
+\par\noindent [[ \#\# scm\_definition \#\# ]]\\
+\noindent
+\{scm\_definition\}
+\smallskip
+\par\noindent [[ \#\# simulator\_code \#\# ]]\\
+\noindent
+\{simulator\_code\}
+\smallskip
+\par\noindent [[ \#\# feedback \#\# ]]\\
+\noindent
+\{feedback\}        \# note: the value you produce must adhere to the JSON schema: \{"anyOf": [\{"type": "string"\}, \{"type": "null"\}]\}
+\smallskip
+\par\noindent [[ \#\# completed \#\# ]]\\
+\noindent
+In adhering to this structure, your objective is: \\{}
+        Given the fields `signature\_description`, `task\_description`, `base\_simulator`, produce the fields `scm\_definition`, `simulator\_code`, `feedback`.\\{}
+        \\{}
+        You are an expert in mechanistic modeling with differential equations and simulator optimization.\\{}
+        \\{}
+        Core Requirements:\\{}
+        - Create a scientific simulator that captures system dynamics accurately\\{}
+        - Write fully functional, executable code with no placeholders\\{}
+        - Use tabs for indentation and mathematically correct formulations\\{}
+        - Add variable shapes in every line of code\\{}
+        - Achieve optimal validation metrics\\{}
+        \\{}
+        Implementation Guidelines:\\{}
+        - Start with mechanistic components, add stochastic elements where needed\\{}
+        - Follow physical/biological constraints and include prior knowledge\\{}
+        - Use any operations (log, exp, power, etc.) and non-differentiable operations\\{}
+        - Ensure computational efficiency for many simulations\\{}
+        - Keep the code as simple as possible\\{}
+        \\{}
+        Iterative Optimization Rules:\\{}
+        - You are part of an iterative process - make only 1-2 targeted improvements per iteration\\{}
+        - Never copy code verbatim - preserve working components while making precise, localized changes\\{}
+        - Make creative but sensible and simple modifications that are structurally different from prior examples\\{}
+        - Focus on changes that build incrementally toward better validation metrics\\{}
+        - Ensure executable code without syntax or shape errors\\{}
+        \\{}
+        System description:\\{}
+        \# HODGKIN-HUXLEY NEURON SIMULATOR WITH MISSING ION CHANNELS\\{}
+        \\{}
+        \#\# OBJECTIVE\\{}
+        Extend an existing Hodgkin-Huxley neuron simulator by identifying and implementing\\{}
+        missing ion channels necessary to reduce discrepancies between simulations and\\{}
+        experimental voltage recordings. The goal is to improve agreement across multiple\\{}
+        electrophysiological summary statistics while maintaining model parsimony.\\{}
+        \\{}
+        \#\# BASE MODEL\\{}
+        Classic Hodgkin-Huxley formulation with standard three-gating-variable structure:\\{}
+        - **Leak current**: conductance g\_leak, reversal potential E\_leak\\{}
+        - **Sodium (Na$^{+}$) current**: conductance gNa, gating variables m (activation) and h (inactivation), reversal E\_Na\\{}
+        - **Potassium (K$^{+}$) current**: conductance gK, gating variable n (activation), reversal E\_K\\{}
+        - **Dynamics**: First-order gating kinetics with voltage-dependent time constants and steady states\\{}
+        - **Input**: Externally applied current I\_inj(t) with optional stochastic components\\{}
+        - **Stochasticity**: Optional random seed for reproducible simulations\\{}
+        \\{}
+        \#\# EXTENSIBILITY\\{}
+        Two pre-allocated channel slots (X1, X2) are available for additional mechanisms.\\{}
+        Each slot provides two tunable parameters (see signature\_description for details).\\{}
+        Channels beyond these two slots must use fixed parameters, not inferred ones.\\{}
+        \\{}
+        \#\# EVALUATION METRICS\\{}
+        Model performance assessed on held-out voltage recordings via these summary statistics:\\{}
+        1. Number of spikes during stimulation\\{}
+        2. Mean resting potential (pre-stimulation)\\{}
+        3. Standard deviation of resting potential\\{}
+        4. Mean voltage during stimulation\\{}
+        5. Variance of voltage\\{}
+        6. Skewness of voltage\\{}
+        7. Kurtosis of voltage\\{}
+        \\{}
+        \#\# DATA CONTEXT\\{}
+        Intracellular voltage recordings from a single neuron exhibiting tonic spiking\\{}
+        behavior across different stimulus intensities.\\{}
+        \\{}
+        **Important data characteristics**:\\{}
+        - No burst firing patterns (no clusters of rapid spikes separated by quiescence)\\{}
+        - No prolonged or sustained high-frequency firing (no sustained high-frequency firing)\\{}
+        - Regular, tonic spiking activity during periods of input current stimulation\\{}
+        - Non-spiking (quiescent) behavior in the absence of input current\\{}
+        - Evenly-spaced action potentials without burst patterns during the activation period\\{}
+        \\{}
+        Therefore, avoid adding channels specifically designed to produce bursting or sustained\\{}
+        high-frequency dynamics.
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={User},
+  colback=UserBg, colframe=UserFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+This is an example of the task, though some input or output fields are not supplied.
+\smallskip
+\par\noindent [[ \#\# signature\_description \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\par\noindent [[ \#\# task\_description \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\par\noindent [[ \#\# base\_simulator \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={Assistant},
+  colback=AssistantBg, colframe=AssistantFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+\par\noindent [[ \#\# scm\_definition \#\# ]]\\
+\noindent
+None
+\smallskip
+\par\noindent [[ \#\# simulator\_code \#\# ]]\\
+\noindent
+\begin{lstlisting}[language=Python,style=pythonstyle]
+import torch
+import torch.nn as nn
+
+
+class DiscoveredSimulator(nn.Module):
+  def __init__(self):
+    super(DiscoveredSimulator, self).__init__()
+    return
+
+  def forward(
+    self,
+    init_voltage: float,
+    input_current: torch.Tensor,
+    dt: float,
+    t: torch.Tensor,
+    params: torch.Tensor,
+    seed=None,
+  ):
+    """
+    Simulates a Hodgkin-Huxley neuron for a specified time duration.
+
+    Args:
+      init_voltage: torch.Tensor: (batch_size,) # initial voltage
+      input_current: torch.Tensor: (batch_size, time_steps) # input current
+      dt: float # time step size
+      t: torch.Tensor: (time_steps,) # time array
+      params: torch.Tensor: (batch_size, n_params) # parameters
+      seed: optional random seed
+
+    Returns:
+      V: torch.Tensor: (batch_size, time_steps) # voltage traces
+    """
+    device = params.device
+
+    # Set up random generator
+    if seed is not None:
+      generator = torch.Generator(device=device)
+      generator.manual_seed(seed)
+    else:
+      generator = torch.Generator(device=device)
+
+    batch_size = params.shape[0]
+    time_steps = t.shape[0]
+
+    # Extract parameters
+    gbar_Na = params[:, 0].float()  # mS/cm2
+    gbar_K = params[:, 1].float() # mS/cm2
+    g_leak = params[:, 2].float() # mS/cm2
+    E_leak = -params[:, 3].float() # mV
+    Vt = -params[:, 4].float() # mV
+    nois_fact = params[:, 5].float() # unitless
+    # TWO POSSIBLE ADDITIONAL CHANNELS (X1, X2)
+    # Each channel has one tunable parameter: conductance gbar_Xi
+    # Then there are two additional parameters available: param_i and param_j.
+    # ONLY ADD ONE CHANNEL IF NECESSARY. Keep the model as simple as possible.
+    gbar_X1 = params[:, 6].float() # mS/cm2 # you can rename X1 to anything you want # in range [1e-4, 10]
+    gbar_X2 = params[:, 7].float() # mS/cm2 # you can rename X2 to anything you want # in range [1e-4, 120]
+    param_i = -params[:, 8].float() # (param are positive values in range [1e-4, 150])
+    param_j = -params[:, 9].float() # (param are positive values in range [1e-4, 3000])
+
+    tstep = float(dt)
+
+    # Parameters
+    nois_fact_obs = 0.0
+    C = 1.0  # uF/cm^2
+    E_Na = 53.0 # mV
+    E_K = -107.0
+
+    ####################################
+    # kinetics
+    def Exp(z):
+      return torch.where(z < -5e2, torch.exp(torch.full_like(z, -5e2)), torch.exp(z))
+
+    def efun(z):
+      return torch.where(torch.abs(z) < 1e-4, 1 - z / 2, z / (Exp(z) - 1))
+
+    # Channel kinetics
+    def alpha_m(x):
+      v1 = x - Vt - 13.0
+      return 0.32 * efun(-0.25 * v1) / 0.25
+
+    def beta_m(x):
+      v1 = x - Vt - 40
+      return 0.28 * efun(0.2 * v1) / 0.2
+
+    def alpha_h(x):
+      v1 = x - Vt - 17.0
+      return 0.128 * Exp(-v1 / 18.0)
+
+    def beta_h(x):
+      v1 = x - Vt - 40.0
+      return 4.0 / (1 + Exp(-0.2 * v1))
+
+    def alpha_n(x):
+      v1 = x - Vt - 15.0
+      return 0.032 * efun(-0.2 * v1) / 0.2
+
+    def beta_n(x):
+      v1 = x - Vt - 10.0
+      return 0.5 * Exp(-v1 / 40)
+
+    def tau_x(alpha, beta):
+      return 1.0 / (alpha + beta)
+
+    def inf_x(alpha, beta):
+      return alpha / (alpha + beta)
+
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing kinetics equations for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    ####################################
+
+    # simulation from initial point
+    V = torch.zeros((batch_size, time_steps), device=device)  # baseline voltage
+    n = torch.zeros((batch_size, time_steps), device=device)
+    m = torch.zeros((batch_size, time_steps), device=device)
+    h = torch.zeros((batch_size, time_steps), device=device)
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing state variables for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    # Initialization
+    V_init = init_voltage.to(device)
+    V[:, 0] = V_init
+    n[:, 0] = inf_x(alpha_n(V[:, 0]), beta_n(V[:, 0]))
+    m[:, 0] = inf_x(alpha_m(V[:, 0]), beta_m(V[:, 0]))
+    h[:, 0] = inf_x(alpha_h(V[:, 0]), beta_h(V[:, 0]))
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing state variable initialization for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    # Simulation loop
+    for i in range(1, time_steps):
+      # All operations now work on batched tensors (batch_size,)
+      a_m, b_m = alpha_m(V[:, i - 1]), beta_m(V[:, i - 1])
+      a_h, b_h = alpha_h(V[:, i - 1]), beta_h(V[:, i - 1])
+      a_n, b_n = alpha_n(V[:, i - 1]), beta_n(V[:, i - 1])
+      # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+      # TODO: add the missing kinetics equations for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+      # ===== END EDITABLE SECTION =====
+
+      tau_V_inv = (
+        (m[:, i - 1] ** 3) * gbar_Na * h[:, i - 1]
+        + (n[:, i - 1] ** 4) * gbar_K
+        + g_leak
+        # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+        # TODO: add the missing terms for the effective membrane time constant inverse; ONLY ADD IF NECESSARY
+        # ===== END EDITABLE SECTION =====
+      ) / C
+
+      V_inf = (
+        (m[:, i - 1] ** 3) * gbar_Na * h[:, i - 1] * E_Na
+        + (n[:, i - 1] ** 4) * gbar_K * E_K
+        + g_leak * E_leak
+        # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+        # TODO: add the missing terms for the voltage steady state; ONLY ADD IF NECESSARY
+        # ===== END EDITABLE SECTION =====
+        + input_current[:,i - 1]
+        + nois_fact * torch.randn(batch_size, generator=generator, device=device) / (tstep**0.5)
+      ) / (tau_V_inv * C)
+
+      V[:, i] = V_inf + (V[:, i - 1] - V_inf) * Exp(-tstep * tau_V_inv)
+      n[:, i] = inf_x(a_n, b_n) + (n[:, i - 1] - inf_x(a_n, b_n)) * Exp(-tstep / tau_x(a_n, b_n))
+      m[:, i] = inf_x(a_m, b_m) + (m[:, i - 1] - inf_x(a_m, b_m)) * Exp(-tstep / tau_x(a_m, b_m))
+      h[:, i] = inf_x(a_h, b_h) + (h[:, i - 1] - inf_x(a_h, b_h)) * Exp(-tstep / tau_x(a_h, b_h))
+      # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+      # TODO: add the missing state variable updates for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+      # ===== END EDITABLE SECTION =====
+
+    # Return voltage with optional observation noise
+    return V + nois_fact_obs * torch.randn(
+      batch_size, time_steps, generator=generator, device=device
+    )
+\end{lstlisting}
+\smallskip
+\par\noindent [[ \#\# feedback \#\# ]]\\
+\noindent
+\par\noindent \{
+\par\noindent\hangindent=1.5em\hangafter=1 \hspace*{1.5em}``\textbf{\texttt{main\_diagnosis}}\textquotesingle\textquotesingle: ``The two additional channel slots (X1, X2) have conductance parameters and auxiliary parameters extracted (`gbar\_X1`, `gbar\_X2`, `param\_i`, `param\_j`) but zero kinetic equations, state variables, or current contributions are implemented anywhere in the simulation loop. The model is running as a plain 3-channel HH model regardless of what values the inference assigns to those four parameters, which fully explains the high NLE (\textasciitilde{}26 per observation).'',
+\par\noindent \hspace*{1.5em}``\textbf{\texttt{issues}}\textquotesingle\textquotesingle:
+\par\noindent \hspace*{1.5em}[
+\par\noindent \hspace*{3.0em}\{
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{description}}\textquotesingle\textquotesingle: ``gbar\_X1, gbar\_X2, param\_i, and param\_j are extracted from params but are never referenced in kinetics, state-variable arrays, tau\_V\_inv, V\_inf, or the integration loop. Their values have no effect on the output voltage trace, so the likelihood surface over those dimensions is flat and the model cannot reduce its NLE below what a plain HH achieves.'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{severity}}\textquotesingle\textquotesingle: ``critical'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{location}}\textquotesingle\textquotesingle: ``All four `\# ===== BEGIN EDITABLE SECTION =====` blocks inside forward()'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{suggestion}}\textquotesingle\textquotesingle: ``Add an M-type slow potassium current (I\_KM) using gbar\_X1 as conductance and E\_K as reversal. This single-gating-variable current (activation gate `p`, no inactivation) is the canonical addition for converting standard HH into a model capable of regular, tonic, non-bursting firing. Implement: (1) kinetics block: `def inf\_p(x): return 1.0/(1+Exp(-(x-param\_i)/10.0))` and `def tau\_p(x): return (-param\_j)/(3.3*(Exp((x-param\_i)/20)+Exp(-(x-param\_i)/20))+1e-7)` (note param\_i is already negated in the extraction so it will be \textasciitilde{}-35 mV at typical posterior values; -param\_j gives a positive timescale up to 3000 ms). (2) State-variable array: `p = torch.zeros(...)`, initialized with `p[:,0] = inf\_p(V[:,0])`. (3) In the loop: compute `inf\_p\_val = inf\_p(V[:,i-1])` and `tau\_p\_val = tau\_p(V[:,i-1])`; add `gbar\_X1` contribution to `tau\_V\_inv` (`+ gbar\_X1*p[:,i-1]/C`) and to `V\_inf` (`+ gbar\_X1*p[:,i-1]*E\_K`); update `p[:,i] = inf\_p\_val + (p[:,i-1]-inf\_p\_val)*Exp(-tstep/tau\_p\_val)`. Keep gbar\_X2 zero or unused unless metrics remain poor after this fix.''
+\par\noindent \hspace*{3.0em}\},
+\par\noindent \hspace*{3.0em}\{
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{description}}\textquotesingle\textquotesingle: ``The summary statistics include resting membrane potential mean and SD, plus voltage kurtosis and skewness. A plain HH model produces a resting potential determined only by g\_leak and E\_leak without subthreshold resonance, often mismatching experimental resting statistics. Adding even a small M-current contribution at rest shifts and stabilises the resting potential and changes subthreshold fluctuation shape.'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{severity}}\textquotesingle\textquotesingle: ``major'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{location}}\textquotesingle\textquotesingle: ``tau\_V\_inv and V\_inf accumulation expressions in the simulation loop'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{suggestion}}\textquotesingle\textquotesingle: ``After implementing the M-current gate `p` as described above, ensure that the M-current term is included in both `tau\_V\_inv` (adds `gbar\_X1 * p[:, i-1] / C`) and `V\_inf` (adds `gbar\_X1 * p[:, i-1] * E\_K` in the numerator). Because `p` is near its steady-state at rest but small, the effect is a mild hyperpolarising bias that pulls the resting voltage toward E\_K, correcting the resting-potential mismatch without inducing bursting. If after this change the spike-count or resting-SD metrics still mismatch, consider activating gbar\_X2 as a small persistent sodium current (I\_NaP) with fixed half-activation, but only as a secondary step to preserve parsimony.''
+\par\noindent \hspace*{3.0em}\}
+\par\noindent \hspace*{1.5em}]
+\par\noindent \}
+\smallskip
+\par\noindent [[ \#\# completed \#\# ]]\\
+\noindent
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={User},
+  colback=UserBg, colframe=UserFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+\par\noindent [[ \#\# signature\_description \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\par\noindent [[ \#\# task\_description \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\par\noindent [[ \#\# base\_simulator \#\# ]]\\
+\noindent
+(see current input)
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={Assistant},
+  colback=AssistantBg, colframe=AssistantFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+\par\noindent [[ \#\# scm\_definition \#\# ]]\\
+\noindent
+- **V**: membrane voltage $\leftarrow$ I\_Na(m,h), I\_K(n), I\_leak, I\_KM(p), I\_inj, noise\\{}
+- **m, h**: Na$^{+}$ activation/inactivation $\leftarrow$ V, Vt (fast kinetics)\\{}
+- **n**: K$^{+}$ activation $\leftarrow$ V, Vt (delayed rectifier)\\{}
+- **p**: M-current (slow K$^{+}$) activation $\leftarrow$ V, param\_i (half-activation), param\_j (time-scale)\\{}
+- **Assumptions**: single-compartment, tonic spiking, M-current provides adaptation without bursting
+\smallskip
+\par\noindent [[ \#\# simulator\_code \#\# ]]\\
+\noindent
+\begin{lstlisting}[language=Python,style=pythonstyle]
+import torch
+import torch.nn as nn
+
+
+class DiscoveredSimulator(nn.Module):
+ def __init__(self):
+  super(DiscoveredSimulator, self).__init__()
+  return
+
+ def forward(
+  self,
+  init_voltage: float,
+  input_current: torch.Tensor,
+  dt: float,
+  t: torch.Tensor,
+  params: torch.Tensor,
+  seed=None,
+ ):
+  """
+  Hodgkin-Huxley neuron with an added M-type slow potassium current (I_KM).
+
+  Physiological rationale for I_KM addition:
+  - M-current is a slowly activating, non-inactivating K+ current active at
+   subthreshold voltages (~-35 to -60 mV range)
+  - It provides spike-frequency adaptation: slightly reduces firing rate at
+   sustained stimulation without producing burst or quiescence
+  - It stabilises regular tonic firing and corrects resting potential statistics
+   (mean, SD) by adding a mild hyperpolarising conductance at rest
+  - It does NOT produce bursting or high-frequency clusters --- exactly what
+   the target data requires
+
+  Args:
+   init_voltage: torch.Tensor: (batch_size,) # initial voltage [mV]
+   input_current: torch.Tensor: (batch_size, time_steps) # injected current [uA/cm2]
+   dt: float # time step [ms]
+   t: torch.Tensor: (time_steps,) # time array [ms]
+   params: torch.Tensor: (batch_size, 10) # biophysical parameters
+   seed: optional random seed
+
+  Returns:
+   V: torch.Tensor: (batch_size, time_steps) # voltage traces [mV]
+  """
+  device = params.device
+
+  # Set up random generator
+  if seed is not None:
+   generator = torch.Generator(device=device)
+   generator.manual_seed(seed)
+  else:
+   generator = torch.Generator(device=device)
+
+  batch_size = params.shape[0]   # int
+  time_steps = t.shape[0]        # int
+
+  # -- Base parameters ------------------------------------------------------
+  gbar_Na   = params[:, 0].float()   # (batch_size,)  mS/cm^2
+  gbar_K    = params[:, 1].float()   # (batch_size,)  mS/cm^2
+  g_leak    = params[:, 2].float()   # (batch_size,)  mS/cm^2
+  E_leak    = -params[:, 3].float()  # (batch_size,)  mV  (sign applied)
+  Vt        = -params[:, 4].float()  # (batch_size,)  mV  (sign applied)
+  nois_fact = params[:, 5].float()   # (batch_size,)  unitless
+
+  # -- M-current channel (X1 slot) ------------------------------------------
+  # gbar_KM  : maximal conductance  [mS/cm^2], range [1e-4, 10]
+  # V_half_p : half-activation voltage [mV], = param_i = -params[:,8]
+  #            params[:,8] in [1e-4, 150] -> V_half_p in [-150, -1e-4]
+  #            Physiologically ~-35 mV for M-current
+  # tau_max_p: time-constant scale [ms],     = -param_j = params[:,9]
+  #            params[:,9] in [1e-4, 3000] -> tau_max_p in [1e-4, 3000]
+  #            M-current kinetics are slow: typically 50--500 ms
+  gbar_KM   = params[:, 6].float()   # (batch_size,)  mS/cm^2  --- M-current conductance
+  # params[:, 7] (gbar_X2) intentionally unused --- parsimony principle
+  V_half_p  = -params[:, 8].float()  # (batch_size,)  mV      --- half-activation of p gate
+  tau_max_p =  params[:, 9].float()  # (batch_size,)  ms      --- max time constant of p gate
+
+  tstep = float(dt)
+
+  # -- Fixed biophysical constants -------------------------------------------
+  nois_fact_obs = 0.0
+  C    = 1.0    # uF/cm^2
+  E_Na = 53.0   # mV
+  E_K  = -107.0 # mV  (also reversal for M-current --- same ion)
+
+  # -- Numerical helpers -----------------------------------------------------
+  def Exp(z):
+   # Numerically safe exponential --- clamp at -500 to avoid underflow
+   return torch.where(
+    z < -5e2,
+    torch.exp(torch.full_like(z, -5e2)),
+    torch.exp(z)
+   )  # same shape as z
+
+  def efun(z):
+   # Handles 0/0 limit of z / (exp(z) - 1) via L'Hopital
+   return torch.where(
+    torch.abs(z) < 1e-4,
+    1 - z / 2,
+    z / (Exp(z) - 1)
+   )  # same shape as z
+
+  # -- Standard HH channel kinetics -----------------------------------------
+  def alpha_m(x):  # x: (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 13.0
+   return 0.32 * efun(-0.25 * v1) / 0.25
+
+  def beta_m(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 40.0
+   return 0.28 * efun(0.2 * v1) / 0.2
+
+  def alpha_h(x):  # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 17.0
+   return 0.128 * Exp(-v1 / 18.0)
+
+  def beta_h(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 40.0
+   return 4.0 / (1 + Exp(-0.2 * v1))
+
+  def alpha_n(x):  # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 15.0
+   return 0.032 * efun(-0.2 * v1) / 0.2
+
+  def beta_n(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 10.0
+   return 0.5 * Exp(-v1 / 40)
+
+  def tau_x(alpha, beta):  # (batch_size,), (batch_size,) -> (batch_size,)
+   return 1.0 / (alpha + beta)
+
+  def inf_x(alpha, beta):  # (batch_size,), (batch_size,) -> (batch_size,)
+   return alpha / (alpha + beta)
+
+  # -- M-current (I_KM) gate kinetics ---------------------------------------
+  # Boltzmann steady-state: p_inf = 1 / (1 + exp(-(V - V_half_p) / 10))
+  # Activation slope k=10 mV is standard for M-current literature
+  def inf_p(x):  # x: (batch_size,) -> (batch_size,)
+   return 1.0 / (1.0 + Exp(-(x - V_half_p) / 10.0))
+
+  # Voltage-dependent time constant with bell shape centred at V_half_p
+  # tau_p = tau_max_p / (3.3 * 2*cosh((V - V_half_p)/20))
+  # At V_half_p: tau_p = tau_max_p / (3.3*2) ~= tau_max_p / 6.6
+  # Away from V_half_p: tau_p decreases (faster kinetics at extreme voltages)
+  def tau_p(x):  # x: (batch_size,) -> (batch_size,)
+   dv = (x - V_half_p) / 20.0                      # (batch_size,)
+   denom = 3.3 * (Exp(dv) + Exp(-dv)) + 1e-7       # (batch_size,) clamped >0
+   return tau_max_p / denom                         # (batch_size,)
+
+  # -- State variable arrays -------------------------------------------------
+  V = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  n = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  m = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  h = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  p = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps) M-current gate
+
+  # -- Initial conditions ----------------------------------------------------
+  V_init = init_voltage.to(device)  # (batch_size,)
+  V[:, 0] = V_init                                              # (batch_size,)
+  n[:, 0] = inf_x(alpha_n(V[:, 0]), beta_n(V[:, 0]))           # (batch_size,)
+  m[:, 0] = inf_x(alpha_m(V[:, 0]), beta_m(V[:, 0]))           # (batch_size,)
+  h[:, 0] = inf_x(alpha_h(V[:, 0]), beta_h(V[:, 0]))           # (batch_size,)
+  p[:, 0] = inf_p(V[:, 0])                                      # (batch_size,)
+
+  # -- Time-integration loop (exponential Euler scheme) ---------------------
+  for i in range(1, time_steps):
+   V_prev = V[:, i - 1]  # (batch_size,)
+
+   # Gating variable rates at previous voltage
+   a_m, b_m = alpha_m(V_prev), beta_m(V_prev)   # (batch_size,), (batch_size,)
+   a_h, b_h = alpha_h(V_prev), beta_h(V_prev)   # (batch_size,), (batch_size,)
+   a_n, b_n = alpha_n(V_prev), beta_n(V_prev)   # (batch_size,), (batch_size,)
+
+   # M-current gate steady-state and time constant at previous voltage
+   inf_p_val = inf_p(V_prev)   # (batch_size,)
+   tau_p_val = tau_p(V_prev)   # (batch_size,)
+
+   # Conductances at previous step
+   g_Na_eff = (m[:, i - 1] ** 3) * gbar_Na * h[:, i - 1]  # (batch_size,)
+   g_K_eff  = (n[:, i - 1] ** 4) * gbar_K                  # (batch_size,)
+   g_KM_eff = gbar_KM * p[:, i - 1]                        # (batch_size,)
+
+   # Effective inverse membrane time constant (sum of conductances / C)
+   tau_V_inv = (
+    g_Na_eff
+    + g_K_eff
+    + g_leak
+    + g_KM_eff   # M-current contributes to total membrane conductance
+   ) / C  # (batch_size,)
+
+   # Voltage steady-state (weighted sum of reversal potentials + input)
+   V_inf = (
+    g_Na_eff * E_Na
+    + g_K_eff  * E_K
+    + g_leak   * E_leak
+    + g_KM_eff * E_K   # M-current drives toward E_K (hyperpolarising)
+    + input_current[:, i - 1]
+    + nois_fact * torch.randn(batch_size, generator=generator, device=device) / (tstep ** 0.5)
+   ) / (tau_V_inv * C)  # (batch_size,)
+
+   # Exponential Euler updates
+   V[:, i] = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv)                               # (batch_size,)
+   n[:, i] = inf_x(a_n, b_n) + (n[:, i-1] - inf_x(a_n, b_n)) * Exp(-tstep / tau_x(a_n, b_n))  # (batch_size,)
+   m[:, i] = inf_x(a_m, b_m) + (m[:, i-1] - inf_x(a_m, b_m)) * Exp(-tstep / tau_x(a_m, b_m))  # (batch_size,)
+   h[:, i] = inf_x(a_h, b_h) + (h[:, i-1] - inf_x(a_h, b_h)) * Exp(-tstep / tau_x(a_h, b_h))  # (batch_size,)
+   p[:, i] = inf_p_val + (p[:, i-1] - inf_p_val) * Exp(-tstep / tau_p_val)                      # (batch_size,)
+
+  # Return voltage (+ optional observation noise, currently 0)
+  return V + nois_fact_obs * torch.randn(
+   batch_size, time_steps, generator=generator, device=device
+  )  # (batch_size, time_steps)
+\end{lstlisting}
+\smallskip
+\par\noindent [[ \#\# feedback \#\# ]]\\
+\noindent
+\par\noindent \{
+\par\noindent\hangindent=1.5em\hangafter=1 \hspace*{1.5em}``\textbf{\texttt{main\_diagnosis}}\textquotesingle\textquotesingle: ``The simulator uses both inferrable parameter slots (X1: params[:,6]; X2: params[:,8-9]) for a single M-current channel while leaving params[:,7] entirely unused. With a neg\_avg\_log\_marginal\_NLE of 28.3 (very poor fit), the single-channel extension is insufficient to simultaneously match all 7 summary statistics --- particularly resting potential mean/SD, and higher-order voltage distribution moments (skewness, kurtosis) which are insensitive to M-current modulation. A second distinct channel using the spare parameter slot is needed.'',
+\par\noindent \hspace*{1.5em}``\textbf{\texttt{issues}}\textquotesingle\textquotesingle:
+\par\noindent \hspace*{1.5em}[
+\par\noindent \hspace*{3.0em}\{
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{description}}\textquotesingle\textquotesingle: ``params[:,7] is declared unused (`intentionally`) while the model badly underfits (NLE=28.3). With 7 target statistics and only one extra channel, the inference cannot jointly correct spike count, resting-potential mean/SD, and voltage skewness/kurtosis --- these statistics require orthogonal biophysical mechanisms. A hyperpolarization-activated cation current (I\_h / HCN) would directly control resting potential mean and SD (by setting a depolarizing baseline leak), and its inward rectification would shape subthreshold voltage distribution (skewness, kurtosis) independently of the M-current`s spike-frequency adaptation role.'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{severity}}\textquotesingle\textquotesingle: ``critical'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{location}}\textquotesingle\textquotesingle: ``params[:, 7] (unused), forward() channel definition block'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{suggestion}}\textquotesingle\textquotesingle: ``Activate params[:,7] as the conductance (gbar\_Ih) for an I\_h channel with fixed half-activation \textasciitilde{}-80 mV and fixed time constant \textasciitilde{}200 ms (no extra inferred params needed beyond gbar\_Ih). Use: I\_h = gbar\_Ih * r * (V - E\_h) with E\_h $\approx$ -30 mV, inf\_r = 1/(1+exp((V+80)/7)), tau\_r fixed at 200 ms. This adds a tonic inward current at rest that lifts mean resting potential, increases resting SD, and shifts voltage skewness --- orthogonal to M-current effects on spike timing.''
+\par\noindent \hspace*{3.0em}\},
+\par\noindent \hspace*{3.0em}\{
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{description}}\textquotesingle\textquotesingle: ``The M-current time-constant formula `tau\_p = tau\_max\_p / (3.3*(exp(dv)+exp(-dv)))` produces values that collapse toward zero for voltages far from V\_half\_p (e.g., during action potentials at +40 mV when V\_half\_p $\approx$ -35 mV, dv$\approx$3.75 $\rightarrow$ 2cosh(3.75)$\approx$84, so tau\_p $\rightarrow$ tau\_max\_p/277). This makes the p-gate track spikes rather than integrate slowly, destroying the intended adaptation and causing the inferred tau\_max\_p to compensate in pathological ways that distort mean stimulation voltage and spike count.'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{severity}}\textquotesingle\textquotesingle: ``major'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{location}}\textquotesingle\textquotesingle: ``tau\_p() function, lines computing denom = 3.3*(Exp(dv)+Exp(-dv))'',
+\par\noindent\hangindent=4.5em\hangafter=1 \hspace*{3.0em}\hspace*{1.5em}``\textbf{\texttt{suggestion}}\textquotesingle\textquotesingle: ``Clamp tau\_p to a physiologically meaningful minimum: `denom = torch.clamp(3.3*(Exp(dv)+Exp(-dv)), min=1.0)` so tau\_p never falls below tau\_max\_p ms. Alternatively, use a simpler voltage-independent tau: `tau\_p = tau\_max\_p * torch.ones\_like(x)`, which is more stable during inference and still captures slow M-current adaptation kinetics (typical tau 100--500 ms) without the extreme compression during spikes.''
+\par\noindent \hspace*{3.0em}\}
+\par\noindent \hspace*{1.5em}]
+\par\noindent \}
+\smallskip
+\par\noindent [[ \#\# completed \#\# ]]\\
+\noindent
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={User},
+  colback=UserBg, colframe=UserFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+\par\noindent [[ \#\# signature\_description \#\# ]]\\
+\noindent
+\#\# INPUT DETAILS\\{}
+- **init\_voltage**: Initial membrane voltage (mV). Type: torch.Tensor: (batch\_size,)\\{}
+- **input\_current**: Stimulation current ($\mu$A/cm$^{2}$). Type: torch.Tensor, shape: (batch\_size, time\_steps)\\{}
+- **dt**: Time step size (ms). Type: float\\{}
+- **t**: Time array (ms). Type: torch.Tensor, shape: (time\_steps,)\\{}
+- **params**: Biophysical parameters. Type: torch.Tensor, shape: (batch\_size, 10)\\{}
+- **seed**: Random seed for stochastic behavior. Type: int or None
+\par\smallskip
+\#\# PARAMETER VECTOR STRUCTURE (batch\_size, 10)\\{}
+Index layout for params tensor:\\{}
+```\\{}
+[0-2]   Base conductances: gbar\_Na, gbar\_K, g\_leak (mS/cm$^{2}$)\\{}
+[3]     Leak reversal: |E\_leak| (mV, sign applied internally)\\{}
+[4]     Voltage threshold: |Vt| (mV, sign applied internally)\\{}
+[5]     Noise factor: nois\_fact (unitless)\\{}
+[6-7]   Additional conductances: gbar\_X1, gbar\_X2 (mS/cm$^{2}$)\\{}
+[8-9]   Additional parameters: |param\_i|, |param\_j|\\{}
+```\\{}
+(Note: gbar\_X1, gbar\_X2, param\_i, param\_j are not used in the current model and may be renamed to anything you want)
+\par\smallskip
+\#\# OUTPUT DETAILS\\{}
+- **V**: Membrane potential (mV). Type: torch.Tensor, shape: (batch\_size, time\_steps)\\{}
+  - Simulated voltage traces for all batch elements\\{}
+  - Includes observation noise scaled by nois\_fact\_obs (currently 0.0)
+\smallskip
+\par\noindent [[ \#\# task\_description \#\# ]]\\
+\noindent
+\#\# CORE TASK\\{}
+Refine a Hodgkin-Huxley neuron simulator by discovering and implementing ion channels\\{}
+or gating mechanisms missing from the current model but necessary to explain\\{}
+discrepancies between simulated and experimental voltage data.
+\par\smallskip
+\#\# CRITICAL CONSTRAINTS
+\par\smallskip
+\#\#\# Parsimony Principle\\{}
+- **Default stance**: Do NOT add channels unless data discrepancies clearly require them\\{}
+- **Noise model**: Keep the current noise model as is, no change is needed\\{}
+- **Prefer fewer channels**: A simpler model that explains the data is always superior\\{}
+- **Stop when sufficient**: Cease adding channels once model adequately captures data
+\par\smallskip
+\#\#\# Channel Addition Strategy\\{}
+- **Maximum capacity**: Up to two additional channels (X1, X2) can be used, but fewer is better\\{}
+- **Add only what`s needed**: You may add multiple channels if the data clearly justifies them, but start simple\\{}
+- **Justify each addition**: Each channel must address specific discrepancies in the data\\{}
+- **Workflow**:\\{}
+  1. Assess necessity: Which aspects of the data are not well-captured by the base model?\\{}
+  2. Identify mechanism(s): Which channel(s) could address these discrepancies?\\{}
+  3. Justify choices: Explain physiological rationale for each proposed channel\\{}
+  4. Implement: Add the minimal set of channels needed\\{}
+  5. Keep it simple: Prefer one well-designed channel over multiple complex ones\\{}
+  6. CRITICAL: Add at most ONE new ion channel per iteration. Use both tunable\\{}
+     parameter slots (param\_i, param\_j) for a single well-characterized channel\\{}
+     rather than splitting them across two channels. Multi-channel additions create\\{}
+     parameter identifiability problems that cause inference to fail.
+\par\smallskip
+\#\# IMPLEMENTATION REQUIREMENTS
+\par\smallskip
+\#\#\# Channel Design\\{}
+- Use pre-allocated slots (X1, X2) with their two tunable parameters:\\{}
+  * Conductance (gbar\_X1, gbar\_X2)\\{}
+  * Flexible parameter (param\_i, param\_j) all in range [1e-4, 150] and [1e-4, 3000] respectively\\{}
+- Keep mechanisms simple: prefer straightforward voltage dependencies\\{}
+- Maintain biophysical realism: appropriate values for the flexible parameter
+\par\smallskip
+**Do NOT introduce channels or mechanisms that generate**:\\{}
+- Burst firing (clusters of rapid spikes separated by quiescent periods)\\{}
+- Bursting behavior or channels specifically designed to produce bursts\\{}
+- Prolonged high-frequency firing or sustained rapid spiking patterns\\{}
+- Mechanisms that suppress or prevent spiking behavior
+\par\smallskip
+Keep the channels as simple as possible following the existing code structure
+\par\smallskip
+\#\#\# Code Standards\\{}
+- Maintain batch-wise PyTorch operations\\{}
+- Ensure numerical stability across voltage ranges\\{}
+- Preserve existing code structure\\{}
+- Add detailed comments explaining physiological rationale\\{}
+- Use voltage-dependent kinetics where appropriate\\{}
+- Document all equations and parameter choices\\{}
+- `torch.full\_like(input, fill\_value)` requires a tensor as the first argument, not a scalar float
+\par\smallskip
+\#\# DEVELOPMENT STRATEGY
+\par\smallskip
+1. **Analyze discrepancies**: Examine which summary statistics deviate most from experimental data\\{}
+2. **Hypothesize mechanism(s)**: Propose channel(s) that could explain the discrepancies\\{}
+3. **Literature support**: Reference known channel properties if applicable\\{}
+4. **Implement conservatively**: Start with simplest formulation and fewest channels\\{}
+5. **Test thoroughly**: Verify numerical stability and physiological plausibility\\{}
+6. **Balance complexity vs. performance**: Add channels only when they meaningfully improve model fit
+\par\smallskip
+\#\# LEARNING FROM HISTORY\\{}
+Incorporate insights from past attempts while avoiding direct code copying.\\{}
+Always explain reasoning for design choices in code comments.
+\par\smallskip
+\#\# OUTPUT REQUIREMENTS\\{}
+- Always return None for feedback field (feedback only used for past examples to get inspiration)\\{}
+- Provide complete, functional simulator code\\{}
+- Include comprehensive comments on modifications and rationale
+\smallskip
+\par\noindent [[ \#\# base\_simulator \#\# ]]\\
+\noindent
+\begin{lstlisting}[language=Python,style=pythonstyle]
+import torch
+import torch.nn as nn
+
+
+class DiscoveredSimulator(nn.Module):
+  def __init__(self):
+    super(DiscoveredSimulator, self).__init__()
+    return
+
+  def forward(
+    self,
+    init_voltage: float,
+    input_current: torch.Tensor,
+    dt: float,
+    t: torch.Tensor,
+    params: torch.Tensor,
+    seed=None,
+  ):
+    """
+    Simulates a Hodgkin-Huxley neuron for a specified time duration.
+
+    Args:
+      init_voltage: torch.Tensor: (batch_size,) # initial voltage
+      input_current: torch.Tensor: (batch_size, time_steps) # input current
+      dt: float # time step size
+      t: torch.Tensor: (time_steps,) # time array
+      params: torch.Tensor: (batch_size, n_params) # parameters
+      seed: optional random seed
+
+    Returns:
+      V: torch.Tensor: (batch_size, time_steps) # voltage traces
+    """
+    device = params.device
+
+    # Set up random generator
+    if seed is not None:
+      generator = torch.Generator(device=device)
+      generator.manual_seed(seed)
+    else:
+      generator = torch.Generator(device=device)
+
+    batch_size = params.shape[0]
+    time_steps = t.shape[0]
+
+    # Extract parameters
+    gbar_Na = params[:, 0].float()  # mS/cm2
+    gbar_K = params[:, 1].float() # mS/cm2
+    g_leak = params[:, 2].float() # mS/cm2
+    E_leak = -params[:, 3].float() # mV
+    Vt = -params[:, 4].float() # mV
+    nois_fact = params[:, 5].float() # unitless
+    # TWO POSSIBLE ADDITIONAL CHANNELS (X1, X2)
+    # Each channel has one tunable parameter: conductance gbar_Xi
+    # Then there are two additional parameters available: param_i and param_j.
+    # ONLY ADD ONE CHANNEL IF NECESSARY. Keep the model as simple as possible.
+    gbar_X1 = params[:, 6].float() # mS/cm2 # you can rename X1 to anything you want # in range [1e-4, 10]
+    gbar_X2 = params[:, 7].float() # mS/cm2 # you can rename X2 to anything you want # in range [1e-4, 120]
+    param_i = -params[:, 8].float() # (param are positive values in range [1e-4, 150])
+    param_j = -params[:, 9].float() # (param are positive values in range [1e-4, 3000])
+
+    tstep = float(dt)
+
+    # Parameters
+    nois_fact_obs = 0.0
+    C = 1.0  # uF/cm^2
+    E_Na = 53.0 # mV
+    E_K = -107.0
+
+    ####################################
+    # kinetics
+    def Exp(z):
+      return torch.where(z < -5e2, torch.exp(torch.full_like(z, -5e2)), torch.exp(z))
+
+    def efun(z):
+      return torch.where(torch.abs(z) < 1e-4, 1 - z / 2, z / (Exp(z) - 1))
+
+    # Channel kinetics
+    def alpha_m(x):
+      v1 = x - Vt - 13.0
+      return 0.32 * efun(-0.25 * v1) / 0.25
+
+    def beta_m(x):
+      v1 = x - Vt - 40
+      return 0.28 * efun(0.2 * v1) / 0.2
+
+    def alpha_h(x):
+      v1 = x - Vt - 17.0
+      return 0.128 * Exp(-v1 / 18.0)
+
+    def beta_h(x):
+      v1 = x - Vt - 40.0
+      return 4.0 / (1 + Exp(-0.2 * v1))
+
+    def alpha_n(x):
+      v1 = x - Vt - 15.0
+      return 0.032 * efun(-0.2 * v1) / 0.2
+
+    def beta_n(x):
+      v1 = x - Vt - 10.0
+      return 0.5 * Exp(-v1 / 40)
+
+    def tau_x(alpha, beta):
+      return 1.0 / (alpha + beta)
+
+    def inf_x(alpha, beta):
+      return alpha / (alpha + beta)
+
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing kinetics equations for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    ####################################
+
+    # simulation from initial point
+    V = torch.zeros((batch_size, time_steps), device=device)  # baseline voltage
+    n = torch.zeros((batch_size, time_steps), device=device)
+    m = torch.zeros((batch_size, time_steps), device=device)
+    h = torch.zeros((batch_size, time_steps), device=device)
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing state variables for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    # Initialization
+    V_init = init_voltage.to(device)
+    V[:, 0] = V_init
+    n[:, 0] = inf_x(alpha_n(V[:, 0]), beta_n(V[:, 0]))
+    m[:, 0] = inf_x(alpha_m(V[:, 0]), beta_m(V[:, 0]))
+    h[:, 0] = inf_x(alpha_h(V[:, 0]), beta_h(V[:, 0]))
+    # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+    # TODO: add the missing state variable initialization for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+    # ===== END EDITABLE SECTION =====
+
+    # Simulation loop
+    for i in range(1, time_steps):
+      # All operations now work on batched tensors (batch_size,)
+      a_m, b_m = alpha_m(V[:, i - 1]), beta_m(V[:, i - 1])
+      a_h, b_h = alpha_h(V[:, i - 1]), beta_h(V[:, i - 1])
+      a_n, b_n = alpha_n(V[:, i - 1]), beta_n(V[:, i - 1])
+      # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+      # TODO: add the missing kinetics equations for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+      # ===== END EDITABLE SECTION =====
+
+      tau_V_inv = (
+        (m[:, i - 1] ** 3) * gbar_Na * h[:, i - 1]
+        + (n[:, i - 1] ** 4) * gbar_K
+        + g_leak
+        # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+        # TODO: add the missing terms for the effective membrane time constant inverse; ONLY ADD IF NECESSARY
+        # ===== END EDITABLE SECTION =====
+      ) / C
+
+      V_inf = (
+        (m[:, i - 1] ** 3) * gbar_Na * h[:, i - 1] * E_Na
+        + (n[:, i - 1] ** 4) * gbar_K * E_K
+        + g_leak * E_leak
+        # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+        # TODO: add the missing terms for the voltage steady state; ONLY ADD IF NECESSARY
+        # ===== END EDITABLE SECTION =====
+        + input_current[:,i - 1]
+        + nois_fact * torch.randn(batch_size, generator=generator, device=device) / (tstep**0.5)
+      ) / (tau_V_inv * C)
+
+      V[:, i] = V_inf + (V[:, i - 1] - V_inf) * Exp(-tstep * tau_V_inv)
+      n[:, i] = inf_x(a_n, b_n) + (n[:, i - 1] - inf_x(a_n, b_n)) * Exp(-tstep / tau_x(a_n, b_n))
+      m[:, i] = inf_x(a_m, b_m) + (m[:, i - 1] - inf_x(a_m, b_m)) * Exp(-tstep / tau_x(a_m, b_m))
+      h[:, i] = inf_x(a_h, b_h) + (h[:, i - 1] - inf_x(a_h, b_h)) * Exp(-tstep / tau_x(a_h, b_h))
+      # ===== BEGIN EDITABLE SECTION (only modify within this block) =====
+      # TODO: add the missing state variable updates for the Hodgkin-Huxley neuron similar to the ones above; ONLY ADD IF NECESSARY
+      # ===== END EDITABLE SECTION =====
+
+    # Return voltage with optional observation noise
+    return V + nois_fact_obs * torch.randn(
+      batch_size, time_steps, generator=generator, device=device
+    )
+\end{lstlisting}
+Respond with the corresponding output fields, starting with the field `[[ \#\# scm\_definition \#\# ]]`, then `[[ \#\# simulator\_code \#\# ]]`, then `[[ \#\# feedback \#\# ]]` (must be formatted as a valid Python Union[str, NoneType]), and then ending with the marker for `[[ \#\# completed \#\# ]]`.
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}
+
+\noindent\textbf{Response}\par\smallskip
+
+\begin{tcolorbox}[
+  breakable, enhanced,
+  title={Output},
+  colback=OutputBg, colframe=OutputFrame,
+  coltitle=white, fonttitle=\bfseries\small,
+  arc=2mm, boxrule=1pt,
+  before upper={\small\setlength{\parindent}{0pt}\setlength{\parskip}{2pt}},
+]
+\par\noindent [[ \#\# scm\_definition \#\# ]]\\
+\noindent
+- **V**: membrane voltage $\leftarrow$ I\_Na(m,h), I\_K(n), I\_leak, I\_KM(p), I\_h(r), I\_inj, noise\\{}
+- **m, h**: Na$^{+}$ activation/inactivation $\leftarrow$ V, Vt (fast HH kinetics)\\{}
+- **n**: delayed-rectifier K$^{+}$ activation $\leftarrow$ V, Vt\\{}
+- **p**: M-current (slow K$^{+}$) gate $\leftarrow$ V, V\_half\_p (param\_i), tau\_max\_p (param\_j); voltage-independent tau for stability\\{}
+- **r**: I\_h (HCN) gate $\leftarrow$ V; fixed half-activation $-$80 mV, fixed tau 200 ms; corrects resting potential distribution
+\smallskip
+\par\noindent [[ \#\# simulator\_code \#\# ]]\\
+\noindent
+\begin{lstlisting}[language=Python,style=pythonstyle]
+import torch
+import torch.nn as nn
+
+
+class DiscoveredSimulator(nn.Module):
+ def __init__(self):
+  super(DiscoveredSimulator, self).__init__()
+  return
+
+ def forward(
+  self,
+  init_voltage: float,
+  input_current: torch.Tensor,
+  dt: float,
+  t: torch.Tensor,
+  params: torch.Tensor,
+  seed=None,
+ ):
+  """
+  Hodgkin-Huxley neuron extended with:
+   1. M-current (I_KM): slow non-inactivating K+ current using X1 slot
+    - Provides spike-frequency adaptation, stabilises tonic firing
+    - Uses voltage-independent tau (more stable during spikes)
+    - gbar_KM = params[:,6], V_half_p = -params[:,8], tau_p = params[:,9]
+
+   2. Ih current (HCN channel): hyperpolarisation-activated cation current using X2 slot
+    - Opens at hyperpolarised voltages (~-80 mV and below)
+    - Reversal E_h ~= -30 mV (mixed Na+/K+), depolarising at rest
+    - Corrects resting potential mean, SD, and voltage distribution shape
+    - Fixed kinetics (half-activation -80 mV, tau 200 ms); only gbar_Ih inferred
+    - gbar_Ih = params[:,7], all other Ih parameters are fixed
+
+  Args:
+   init_voltage: torch.Tensor: (batch_size,)            initial voltage [mV]
+   input_current: torch.Tensor: (batch_size, time_steps) injected current [uA/cm2]
+   dt: float                                              time step [ms]
+   t: torch.Tensor: (time_steps,)                        time array [ms]
+   params: torch.Tensor: (batch_size, 10)                biophysical parameters
+   seed: optional random seed
+
+  Returns:
+   V: torch.Tensor: (batch_size, time_steps)             voltage traces [mV]
+  """
+  device = params.device
+
+  # Set up random generator
+  if seed is not None:
+   generator = torch.Generator(device=device)
+   generator.manual_seed(seed)
+  else:
+   generator = torch.Generator(device=device)
+
+  batch_size = params.shape[0]   # int
+  time_steps = t.shape[0]        # int
+
+  # -- Base HH parameters ----------------------------------------------------
+  gbar_Na   = params[:, 0].float()   # (batch_size,)  mS/cm^2
+  gbar_K    = params[:, 1].float()   # (batch_size,)  mS/cm^2
+  g_leak    = params[:, 2].float()   # (batch_size,)  mS/cm^2
+  E_leak    = -params[:, 3].float()  # (batch_size,)  mV  (negative applied)
+  Vt        = -params[:, 4].float()  # (batch_size,)  mV  (negative applied)
+  nois_fact = params[:, 5].float()   # (batch_size,)  unitless
+
+  # -- X1 slot: M-current (I_KM, slow non-inactivating K+) -----------------
+  # Physiological rationale:
+  #   M-current activates slowly at subthreshold depolarised voltages (~-35 mV),
+  #   providing an outward K+ current that limits repetitive firing rate and
+  #   produces spike-frequency adaptation without bursting or quiescence.
+  # Parameter mapping:
+  #   gbar_KM   = params[:,6] in [1e-4, 10]  mS/cm^2
+  #   V_half_p  = -params[:,8] in [-150, -1e-4] mV  (typically ~-35 mV)
+  #   tau_p     =  params[:,9] in [1e-4, 3000]  ms  (typically 50-500 ms)
+  # Note: voltage-independent tau avoids instability during fast action potentials
+  gbar_KM  = params[:, 6].float()   # (batch_size,)  mS/cm^2
+  V_half_p = -params[:, 8].float()  # (batch_size,)  mV
+  tau_p    =  params[:, 9].float()  # (batch_size,)  ms --- voltage-independent for stability
+
+  # -- X2 slot: Ih current (HCN, hyperpolarisation-activated cation) --------
+  # Physiological rationale:
+  #   Ih activates at hyperpolarised voltages (< -60 mV), carries inward
+  #   Na+/K+ current with reversal ~-30 mV, depolarising the cell toward
+  #   rest. This sets a tonic inward "sag" current that:
+  #     - Raises mean resting potential slightly above pure K+ equilibrium
+  #     - Increases resting SD (voltage fluctuations due to channel noise)
+  #     - Shapes subthreshold distribution (skewness, kurtosis)
+  #   It does NOT promote bursting --- it acts as a stabilising "pacemaker"
+  #   current opposing excessive hyperpolarisation.
+  # Parameter mapping:
+  #   gbar_Ih = params[:,7] in [1e-4, 120] mS/cm^2 --- only inferred parameter
+  #   All kinetic parameters fixed from literature
+  gbar_Ih = params[:, 7].float()   # (batch_size,)  mS/cm^2
+
+  # Fixed Ih kinetic constants (from Magee 1998, Koch 1999)
+  E_h          = -30.0   # mV  --- mixed Na+/K+ cation reversal
+  V_half_r     = -80.0   # mV  --- half-activation (hyperpolarisation-activated)
+  k_r          =  7.0    # mV  --- activation slope (negative: opens on hyperpol.)
+  tau_r_fixed  = 200.0   # ms  --- slow, voltage-independent time constant
+
+  tstep = float(dt)
+
+  # -- Fixed biophysical constants -------------------------------------------
+  nois_fact_obs = 0.0
+  C    = 1.0    # uF/cm^2
+  E_Na = 53.0   # mV
+  E_K  = -107.0 # mV
+
+  # -- Numerical helpers -----------------------------------------------------
+  def Exp(z):
+   # Numerically safe exponential --- prevent overflow at very negative z
+   return torch.where(
+    z < -5e2,
+    torch.exp(torch.full_like(z, -5e2)),
+    torch.exp(z)
+   )  # same shape as z
+
+  def efun(z):
+   # Handles 0/0 limit of z / (exp(z) - 1) near z=0
+   return torch.where(
+    torch.abs(z) < 1e-4,
+    1 - z / 2,
+    z / (Exp(z) - 1)
+   )  # same shape as z
+
+  # -- Standard HH channel kinetics -----------------------------------------
+  def alpha_m(x):  # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 13.0
+   return 0.32 * efun(-0.25 * v1) / 0.25
+
+  def beta_m(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 40.0
+   return 0.28 * efun(0.2 * v1) / 0.2
+
+  def alpha_h(x):  # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 17.0
+   return 0.128 * Exp(-v1 / 18.0)
+
+  def beta_h(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 40.0
+   return 4.0 / (1 + Exp(-0.2 * v1))
+
+  def alpha_n(x):  # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 15.0
+   return 0.032 * efun(-0.2 * v1) / 0.2
+
+  def beta_n(x):   # (batch_size,) -> (batch_size,)
+   v1 = x - Vt - 10.0
+   return 0.5 * Exp(-v1 / 40)
+
+  def tau_x(alpha, beta):  # (batch_size,), (batch_size,) -> (batch_size,)
+   return 1.0 / (alpha + beta)
+
+  def inf_x(alpha, beta):  # (batch_size,), (batch_size,) -> (batch_size,)
+   return alpha / (alpha + beta)
+
+  # -- M-current (I_KM) gating: Boltzmann steady-state, constant tau --------
+  # p_inf = 1 / (1 + exp(-(V - V_half_p) / 10))
+  # Slope k=10 mV is standard for cortical M-current (Wang 1998)
+  def inf_p(x):  # (batch_size,) -> (batch_size,)
+   return 1.0 / (1.0 + Exp(-(x - V_half_p) / 10.0))
+
+  # Voltage-independent tau_p avoids spurious fast tracking during spikes.
+  # tau_p is directly the inferred parameter (batch_size,), already positive.
+
+  # -- Ih gating: hyperpolarisation-activated Boltzmann, fixed tau ----------
+  # r_inf = 1 / (1 + exp((V - V_half_r) / k_r))
+  # Note positive sign in exponent: more open at V << V_half_r = -80 mV
+  def inf_r(x):  # (batch_size,) -> (batch_size,)
+   return 1.0 / (1.0 + Exp((x - V_half_r) / k_r))
+
+  # tau_r is fixed scalar (200 ms) --- no per-batch variation needed
+
+  # -- State variable arrays -------------------------------------------------
+  V = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  n = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  m = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  h = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps)
+  p = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps) M-current gate
+  r = torch.zeros((batch_size, time_steps), device=device)  # (batch_size, time_steps) Ih gate
+
+  # -- Initial conditions (steady state at initial voltage) ------------------
+  V_init = init_voltage.to(device)  # (batch_size,)
+  V[:, 0] = V_init                                               # (batch_size,)
+  n[:, 0] = inf_x(alpha_n(V[:, 0]), beta_n(V[:, 0]))            # (batch_size,)
+  m[:, 0] = inf_x(alpha_m(V[:, 0]), beta_m(V[:, 0]))            # (batch_size,)
+  h[:, 0] = inf_x(alpha_h(V[:, 0]), beta_h(V[:, 0]))            # (batch_size,)
+  p[:, 0] = inf_p(V[:, 0])                                       # (batch_size,)
+  r[:, 0] = inf_r(V[:, 0])                                       # (batch_size,)
+
+  # -- Exponential Euler time-integration loop -------------------------------
+  for i in range(1, time_steps):
+   V_prev = V[:, i - 1]  # (batch_size,)
+
+   # Standard HH gating rates
+   a_m, b_m = alpha_m(V_prev), beta_m(V_prev)   # (batch_size,), (batch_size,)
+   a_h, b_h = alpha_h(V_prev), beta_h(V_prev)   # (batch_size,), (batch_size,)
+   a_n, b_n = alpha_n(V_prev), beta_n(V_prev)   # (batch_size,), (batch_size,)
+
+   # M-current gate steady-state (tau is voltage-independent -> use tau_p directly)
+   inf_p_val = inf_p(V_prev)    # (batch_size,)
+
+   # Ih gate steady-state (tau is fixed scalar)
+   inf_r_val = inf_r(V_prev)    # (batch_size,)
+
+   # Effective conductances at previous time step
+   g_Na_eff  = (m[:, i-1] ** 3) * gbar_Na * h[:, i-1]  # (batch_size,)
+   g_K_eff   = (n[:, i-1] ** 4) * gbar_K                # (batch_size,)
+   g_KM_eff  = gbar_KM * p[:, i-1]                      # (batch_size,)
+   g_Ih_eff  = gbar_Ih * r[:, i-1]                      # (batch_size,)
+
+   # Effective inverse membrane time constant (total conductance / C)
+   tau_V_inv = (
+    g_Na_eff
+    + g_K_eff
+    + g_leak
+    + g_KM_eff   # M-current: outward K+, raises conductance
+    + g_Ih_eff   # Ih: inward mixed cation, raises conductance
+   ) / C  # (batch_size,)
+
+   # Voltage steady-state numerator (weighted reversal potentials + input)
+   V_inf = (
+    g_Na_eff * E_Na
+    + g_K_eff  * E_K
+    + g_leak   * E_leak
+    + g_KM_eff * E_K    # M-current drives V toward E_K (hyperpolarising)
+    + g_Ih_eff * E_h    # Ih drives V toward E_h ~ -30 mV (depolarising at rest)
+    + input_current[:, i-1]
+    + nois_fact * torch.randn(batch_size, generator=generator, device=device) / (tstep ** 0.5)
+   ) / (tau_V_inv * C)  # (batch_size,)
+
+   # Exponential Euler update for voltage
+   V[:, i] = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv)          # (batch_size,)
+
+   # Standard HH gating variable updates
+   n[:, i] = inf_x(a_n, b_n) + (n[:, i-1] - inf_x(a_n, b_n)) * Exp(-tstep / tau_x(a_n, b_n))  # (batch_size,)
+   m[:, i] = inf_x(a_m, b_m) + (m[:, i-1] - inf_x(a_m, b_m)) * Exp(-tstep / tau_x(a_m, b_m))  # (batch_size,)
+   h[:, i] = inf_x(a_h, b_h) + (h[:, i-1] - inf_x(a_h, b_h)) * Exp(-tstep / tau_x(a_h, b_h))  # (batch_size,)
+
+   # M-current gate update (voltage-independent tau -> stable during spikes)
+   p[:, i] = inf_p_val + (p[:, i-1] - inf_p_val) * Exp(-tstep / tau_p)  # (batch_size,)
+
+   # Ih gate update (fixed scalar tau)
+   r[:, i] = inf_r_val + (r[:, i-1] - inf_r_val) * Exp(
+    torch.full_like(V_prev, -tstep / tau_r_fixed)
+   )  # (batch_size,)
+
+  # Return voltage traces (+ optional observation noise, currently zero)
+  return V + nois_fact_obs * torch.randn(
+   batch_size, time_steps, generator=generator, device=device
+  )  # (batch_size, time_steps)
+\end{lstlisting}
+\smallskip
+\par\noindent [[ \#\# feedback \#\# ]]\\
+\noindent
+null
+\smallskip
+\par\noindent [[ \#\# completed \#\# ]]\\
+\noindent
+\smallskip
+\end{tcolorbox}
+\vspace{0.35em}

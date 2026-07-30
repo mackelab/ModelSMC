@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two extra channel slots (gbar_X1, gbar_X2, param_i, param_j) are extracted from params but never used: no kinetic functions, no state variables, no initialization, and no current contribution are implemented. The simulator therefore runs as a plain 3-channel HH model regardless of inferred parameters, explaining the high NLE (~25.5 per trace). For regular tonic spiking, a slow muscarinic K\u207a current (M-current, I_Km) is the most parsimonious missing mechanism.",
+  "issues": [
+    {
+      "description": "gbar_X1 and its associated parameters (param_i, param_j) are extracted but have zero effect on the simulation. No kinetic functions, state variables, or current terms are added, so the model is identical to standard HH regardless of what values the inference assigns to these parameters.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs (kinetics, state variable declaration, initialization, loop update, tau_V_inv and V_inf sums)",
+      "suggestion": "Implement a slow M-type K\u207a current using gbar_X1 as conductance and param_i as the half-activation voltage. (1) Add kinetics: `def p_inf_m(x): return 1.0/(1.0+Exp(-(x - param_i)/10.0))` and `def tau_p_m(x): return 1.0/(0.02*(Exp((x-param_i)/5.0)+Exp(-(x-param_i)/5.0)))` (param_j can scale tau). (2) Declare state tensor `p_m` and initialize to `p_inf_m(V[:,0])`. (3) In the loop compute `p_inf_m(V[:,i-1])` and update `p_m[:,i]` with the exponential Euler step. (4) Add `+ gbar_X1 * p_m[:,i-1]` to tau_V_inv and `+ gbar_X1 * p_m[:,i-1] * E_K` to V_inf numerator. Leave X2 slot unused unless metrics remain poor."
+    },
+    {
+      "description": "The standard HH K\u207a current (n\u2074) alone produces adaptation and spike-frequency decrease over time, which can cause too few spikes or incorrect inter-spike intervals relative to the observed regular tonic spiking. Without the M-current stabilizing sub-threshold voltage, resting potential statistics (metrics 2-3) and within-stimulation voltage distribution (metrics 4-7) will also be biased.",
+      "severity": "major",
+      "location": "V_inf and tau_V_inv computation block inside the time loop",
+      "suggestion": "After adding the M-current as described above, verify that the inferred gbar_X1 settles to a physiologically plausible range (0.1\u20135 mS/cm\u00b2). If spike count (metric 1) is still wrong after the M-current addition, allow param_j to tune the M-current time constant (tau_p) by replacing the fixed denominator constants with expressions involving param_j (which spans up to -3000, suitable for scaling a slow ~100 ms time constant). Do not add a second channel (gbar_X2) unless NLE remains above 20 after re-inference, to preserve model parsimony."
+    }
+  ]
+}

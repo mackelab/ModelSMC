@@ -1,0 +1,33 @@
+system_description: |
+  You are working with a Hodgkin-Huxley neuron simulator that is missing some ion channels.
+  Extend it by adding the missing channels to reduce discrepancies with experimental voltage recordings.
+
+signature_description: |
+  ## INPUT DETAILS
+  - **init_voltage**: Initial membrane voltage (mV). Type: torch.Tensor: (batch_size,)
+  - **input_current**: Stimulation current (μA/cm²). Type: torch.Tensor, shape: (batch_size, time_steps)
+  - **dt**: Time step size (ms). Type: float
+  - **t**: Time array (ms). Type: torch.Tensor, shape: (time_steps,)
+  - **params**: Biophysical parameters. Type: torch.Tensor, shape: (batch_size, 10)
+  - **seed**: Random seed for stochastic behavior. Type: int or None
+
+  ## PARAMETER VECTOR STRUCTURE (batch_size, 10)
+  Index layout for params tensor:
+  ```
+  [0-2]   Base conductances: gbar_Na, gbar_K, g_leak (mS/cm²)
+  [3]     Leak reversal: |E_leak| (mV, sign applied internally)
+  [4]     Voltage threshold: |Vt| (mV, sign applied internally)
+  [5]     Noise factor: nois_fact (unitless)
+  [6-7]   Additional conductances: gbar_X1, gbar_X2 (mS/cm²)
+  [8-9]   Additional parameters: |param_i|, |param_j|
+  ```
+  (Note: gbar_X1, gbar_X2, param_i, param_j are not used in the current model and may be renamed to anything you want)
+
+  ## OUTPUT DETAILS
+  - **V**: Membrane potential (mV). Type: torch.Tensor, shape: (batch_size, time_steps)
+    - Simulated voltage traces for all batch elements
+    - Includes observation noise scaled by nois_fact_obs (currently 0.0)
+
+task_description: |
+  Refine the provided Hodgkin-Huxley simulator by identifying and implementing ion channels
+  missing from the current model. Return complete, functional simulator code and None for feedback.

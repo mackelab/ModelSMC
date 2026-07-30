@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, A-type K⁺ current, and injected current
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation → spike shape
+- **n** (K⁺ gate): delayed rectifier → spike repolarization
+- **a_A, b_A** (A-type K⁺ gates, X1 slot): fast activation + slower inactivation → controls ISI regularity without adaptation
+- **Assumptions**: single-compartment HH; I_A half-activation fixed at −40 mV, half-inactivation at −60 mV; tau_b tunable via params[:,7]; no bursting mechanisms

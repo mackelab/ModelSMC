@@ -1,0 +1,5 @@
+- V <- m, h, n (HH gates), p (one added slow K+ gate), leak, I_inj, and stochastic current noise.
+- m,h,n <- V via HH alpha/beta kinetics; p <- V, param_i (V_half offset), param_j (tau scale) via first-order kinetics.
+- Currents: I_Na = gbar_Na * m^3 * h * (V - E_Na); I_K = gbar_K * n^4 * (V - E_K); I_M = gbar_X1 * p * (V - E_K); I_leak = g_leak * (V - E_leak).
+- Parameters: gbar_Na,gbar_K,g_leak,|E_leak|,|Vt|,nois_fact,gbar_X1 (tunable),gbar_X2 (unused),|param_i|,|param_j|.
+- Assumptions: single slow, non-inactivating M-type K+ channel (uses both param_i,param_j) suffices to modulate tonic firing rate/subthreshold statistics without producing bursting.

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The dominant failures are voltage variance (MSE=2.90), spike count (MSE=2.63), resting-potential std (MSE=2.41), skewness (MSE=1.77), and kurtosis (MSE=1.49). The root cause is twofold: (1) the X2 channel slot is fully unused, leaving a free inferred mechanism on the table that could correct residual distribution-shape and spiking errors; (2) the M-current parameterisation maps param_i to V_half via '-90 + param_i', giving a half-activation range of -90 to +60 mV with no constraint \u2014 at extreme inferred values the M-gate is either permanently open (over-suppressing spikes, inflating MSE_dim0) or permanently closed (no adaptation, leaving skewness/kurtosis uncorrected). These two problems together explain why all five high-MSE dimensions remain problematic despite the M-current being present.",
+  "issues": [
+    {
+      "description": "The X2 channel slot (params[:,7] as conductance, params[:,8]/[:,9] already consumed by M-current) is entirely unused. Voltage variance (MSE=2.90), skewness (MSE=1.77), and kurtosis (MSE=1.49) reflect unmatched voltage-distribution shape that a single slow K+ current cannot fix alone. A fast-inactivating A-type K+ current (I_A) in X2 \u2014 which activates rapidly near spike threshold and inactivates during the spike \u2014 would narrow the action-potential waveform, deepen the fast AHP, and reshape the tail of the voltage distribution without inducing bursting. Use params[:,7] as gbar_A (conductance, free) and fix the kinetic parameters (half-activation ~-50 mV, inactivation half-point ~-80 mV, activation tau ~1 ms, inactivation tau ~15 ms) to avoid consuming the already-used param slots.",
+      "severity": "major",
+      "location": "forward() \u2014 simulation loop, after the w-gate update block; no X2 current term is added to tau_V_inv or V_inf",
+      "suggestion": "Implement I_A = gbar_A * a_inf(V)^3 * b_inf(V) * (V - E_K) with fixed sigmoidal steady-states (a_inf half-activation -50 mV, slope 10 mV; b_inf half-inactivation -80 mV, slope -10 mV) and fixed short time constants (tau_a=1 ms, tau_b=15 ms). Integrate a and b gates with exponential-Euler just like m/h/n. Add gbar_A*a^3*b to tau_V_inv and gbar_A*a^3*b*E_K to the V_inf numerator. Use params[:,7] for gbar_A (inferred, ~[0,5] mS/cm\u00b2); keep kinetic parameters fixed for parsimony."
+    },
+    {
+      "description": "The M-current half-activation voltage is computed as V_half = -90 + param_i, where param_i range is [1e-4, 150]. This maps to V_half in [-90, +60] mV. At large inferred param_i values (>70), w_inf saturates to 1 at all physiological voltages \u2014 the M-conductance is always fully on, providing a large constant outward current that suppresses spikes (explaining spike-count MSE=2.63) and clamps the resting potential (explaining resting-std MSE=2.41). Reparameterise V_half to a physiologically constrained range.",
+      "severity": "major",
+      "location": "forward() \u2014 w_inf() definition: 'V_half = -90.0 + param_i'",
+      "suggestion": "Replace 'V_half = -90.0 + param_i' with 'V_half = -60.0 + param_i * 0.3', so that for param_i in [0, 150] the half-activation spans [-60, -15] mV \u2014 the physiologically relevant range for I_M. Alternatively clamp V_half directly: 'V_half = (-90.0 + param_i).clamp(-55.0, -20.0)'. This prevents the M-gate from being pathologically saturated at rest and allows the optimiser to find a valid conductance level that corrects adaptation without silencing firing."
+    }
+  ]
+}

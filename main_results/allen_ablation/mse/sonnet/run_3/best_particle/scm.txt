@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current (IM), A-current (IA), and injected current
+- **m, h** (Na⁺ gates): fast activation/inactivation via voltage-dependent α/β kinetics
+- **n** (K⁺ DR gate): delayed-rectifier activation via voltage-dependent α/β kinetics
+- **p** (M-current gate): slow non-inactivating K⁺ gate; fixes skewness/kurtosis; tau_p ∈ [25, 300] ms
+- **aA, bA** (A-current gates): fast transient K⁺ activation/inactivation; controls spike count and ISI; fixed kinetics, only gbar_IA inferred

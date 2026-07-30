@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The primary failure is a systematically over-hyperpolarized potassium reversal potential (E_K = -107 mV, hardcoded), which is far below the physiological range for cortical neurons (~-90 mV). This single constant distorts the after-hyperpolarization depth for both the standard K+ current and the M-current, biasing spike count, mean stimulation voltage, skewness, and kurtosis simultaneously. A secondary issue is that the Ih gating parameters allow unrealistically strong activation near rest: with V_half_r = -80 mV and k_r = 7 mV, ~19% of Ih channels are open at -70 mV rest, and the prior permits gbar_Ih up to 120 mS/cm\u00b2 (physiological range is 0.05\u20135 mS/cm\u00b2), causing gbar_Ih to dominate the conductance balance and push mean resting potential and voltage variance far from target.",
+  "issues": [
+    {
+      "description": "E_K = -107.0 mV is too hyperpolarized. Physiological E_K for cortical neurons is approximately -90 mV. The excessively negative value deepens the AHP after every spike, reduces firing rate by prolonging inter-spike intervals, pulls mean stimulation-period voltage too negative (metric 4), and skews the voltage distribution toward hyperpolarized values (metrics 6\u20137). Because E_K also sets the M-current reversal, this error is amplified once gbar_KM is inferred.",
+      "severity": "critical",
+      "location": "Line: `E_K = -107.0  # mV`",
+      "suggestion": "Change E_K to -90.0 mV, which is the standard physiological value for cortical/hippocampal neurons used in most HH extensions (e.g., Pospischil et al. 2008). If the target data suggests a slightly different value, keep it as a fixed constant in the range [-80, -95] mV rather than leaving it at -107."
+    },
+    {
+      "description": "The Ih current is over-powered at rest. Two compounding problems: (1) k_r = 7 mV with V_half_r = -80 mV means ~19% of Ih channels are already open at a typical resting voltage of -70 mV, providing significant tonic depolarizing current even without strong hyperpolarisation. (2) The prior upper bound for gbar_Ih (120 mS/cm\u00b2) is ~25\u2013100\u00d7 the physiological range (0.05\u20135 mS/cm\u00b2), so the inference can select values that make Ih the dominant conductance, dramatically raising resting potential SD and variance (metrics 3, 5) to unrealistic levels while also distorting skewness and kurtosis.",
+      "severity": "major",
+      "location": "Lines: `gbar_Ih = params[:, 7]`, `k_r = 7.0`, `V_half_r = -80.0`",
+      "suggestion": "Shift the half-activation to V_half_r = -90 mV (deeper hyperpolarisation required to open channels), which reduces Ih activation at rest from ~19% to ~4%. Also reduce the prior upper bound for gbar_Ih from 120 to 5 mS/cm\u00b2 to keep Ih in the physiological regime. Alternatively, increase k_r to 10\u201312 mV to soften the transition and reduce resting activation. These changes together will prevent Ih from dominating resting conductance while preserving its role in correcting subthreshold distribution shape."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, injected current, and noise
+- **m, h** (Na⁺ activation/inactivation): voltage-dependent first-order kinetics via Vt-shifted α/β rates
+- **n** (K⁺ activation): voltage-dependent first-order kinetics via Vt-shifted α/β rates
+- **p** (M-current activation): slow non-inactivating K⁺ gating; steady-state sigmoid at V_half=param_i, time constant scaled by param_j
+- **Assumptions**: single-compartment, tonic spiking, no bursting; M-current adds sub-threshold adaptation without oscillatory instability

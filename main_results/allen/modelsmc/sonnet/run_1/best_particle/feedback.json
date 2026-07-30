@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The model is stuck at NLE ~25, matching iter-3 performance after successfully reverting the iter-4 regressions. The remaining gap likely stems from two sources: (1) the X2 parameter slot (params[:,7]) is completely unused, leaving ~10% of available model capacity untapped, and (2) the IKm alone cannot fully capture the inter-spike-interval distribution shape\u2014specifically the voltage skewness and kurtosis during stimulation\u2014because it only provides slow outward adaptation without any transient outward component that shapes spike-onset dynamics and ISI regularity.",
+  "issues": [
+    {
+      "description": "X2 parameter slot (params[:,7]) is unused. A slow-inactivating or transient outward K+ current (e.g., D-type Kv1 or A-type K+ current) with params[:,7] as its conductance and fixed kinetics would address residual mismatches in voltage variance, skewness, and kurtosis during stimulation. An A-type current (fast activation, slow inactivation at rest) delays spike onset after each action potential, regularizing ISI and shaping the voltage distribution without causing bursting. Fixed kinetics example: a_inf(V) = 1/(1+exp(-(V+40)/10)), b_inf(V) = 1/(1+exp((V+80)/6)), tau_b ~ 150 ms (slow inactivation), tau_a ~ 1 ms (fast activation, effectively instantaneous). Current = gbar_A * a_inf(V) * b * (V - E_K).",
+      "severity": "major",
+      "location": "forward(): X2 slot \u2014 params[:,7] declared as gbar_X2 but never used in tau_V_inv or V_inf computation",
+      "suggestion": "Implement an A-type (or D-type) K+ current on X2: add state variable `b` initialized to b_inf(V[:,0]), update it each step via exponential Euler with fixed tau_b=150ms, and add gbar_A * a_inf(Vi) * b[:,i-1] to tau_V_inv and gbar_A * a_inf(Vi) * b[:,i-1] * E_K to the numerator of V_inf. Keep gbar_A = params[:,7] as the sole tunable parameter; fix all kinetic parameters (V_half_a=-40mV, slope_a=10mV, V_half_b=-80mV, slope_b=6mV, tau_b=150ms). This does not cause bursting\u2014it suppresses high-frequency firing transiently, promoting regular tonic spiking."
+    },
+    {
+      "description": "The IKm Boltzmann slope is hard-coded at 10 mV and the bell-shaped tau_p width is fixed via the constant 0.04. These fixed values constrain the optimizer's ability to match the experimental voltage skewness and kurtosis: if the true M-current activation is sharper or broader, the fixed slope forces compensatory adjustments in V_half (params[:,8]) and tau_max (params[:,9]) that may not be achievable within the prior bounds. The 10 mV slope is reasonable for canonical M-current but neurons expressing Kv7.2/7.3 heteromers can have slopes of 7\u201314 mV depending on subunit composition.",
+      "severity": "minor",
+      "location": "forward(): p_inf() \u2014 `1.0 / (1.0 + Exp(-v1 / 10.0))`, and tau_p() \u2014 `Exp(0.04 * v1) + Exp(-0.04 * v1)`",
+      "suggestion": "Consider slightly steepening the IKm Boltzmann to slope=8 mV (change `/10.0` to `/8.0` in p_inf) and widening the bell to 0.03 (change `0.04` to `0.03` in tau_p). A steeper sigmoid creates a sharper threshold-like activation that may better reproduce experimental spike-frequency adaptation statistics; the wider bell gives the optimizer more dynamic range in tau_max. Validate that the effective tau_p at V_half (= tau_max/2) still spans physiologically plausible values within the [1e-4, 3000] ms prior."
+    }
+  ]
+}

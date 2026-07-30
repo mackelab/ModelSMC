@@ -1,0 +1,5 @@
+- **V** (membrane potential) ← Na⁺ (m³h), K⁺ (n⁴), leak, M-current (p), input current, noise
+- **m, h** (Na⁺ gating) ← voltage-dependent α/β HH kinetics shifted by Vt
+- **n** (K⁺ delayed rectifier) ← voltage-dependent α/β HH kinetics shifted by Vt
+- **p** (M-current, slow non-inactivating K⁺) ← symmetric exponential α/β; conductance gbar_M (params[:,6]); half-activation offset via params[:,8]
+- **Assumptions**: single-compartment, tonic spiking, one additional channel (IKM) only; no bursting mechanisms; params[:,7] and params[:,9] unused (parsimony)

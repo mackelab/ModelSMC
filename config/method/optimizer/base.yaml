@@ -1,0 +1,4 @@
+# Base optimizer configuration
+plotting: True
+num_simulations: 5_000
+save_parameter_estimates: True

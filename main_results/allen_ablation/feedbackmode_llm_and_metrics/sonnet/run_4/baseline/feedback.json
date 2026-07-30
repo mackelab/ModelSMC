@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from the parameter tensor but never actually used in any kinetics functions, state variable declarations, initialization, or the simulation loop. The model is functionally identical to the bare three-channel HH model regardless of what values the inference engine assigns to these parameters, making it impossible to fit the experimental tonic-spiking data.",
+  "issues": [
+    {
+      "description": "gbar_X1 (and the associated param_i/param_j) are declared but wired to nothing. The forward pass has no kinetics function, no state variable, no initialization, and no current term for X1. This means the optimizer is trying to fit 4 extra free parameters that have zero effect on the output voltage, yet the baseline HH model clearly cannot reproduce the observed tonic spiking statistics (neg_avg_log_marginal_NLE \u2248 25.9 is very poor). A slow voltage-gated potassium current (M-current / Kv7) would be the most parsimonious addition: it modulates tonic firing rate and inter-spike regularity without introducing burst dynamics.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs \u2014 kinetics block, state-variable declaration block, initialization block, and simulation loop block",
+      "suggestion": "Implement an M-type (muscarinic) K+ channel using gbar_X1 as conductance and param_i as the half-activation voltage shift. Add a single gating variable `p` with: alpha_p(V) = 0.0001 * efun(-0.1*(V - param_i)) / 0.1 and beta_p(V) = 0.0001 * Exp(-(V - param_i) / 80). Initialize p[:,0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0])). In the loop compute a_p, b_p, update p with the exponential-Euler step, and add gbar_X1 * p[:,i-1] to tau_V_inv and gbar_X1 * p[:,i-1] * E_K to the numerator of V_inf. Leave X2 slot empty to maintain model parsimony consistent with the system description."
+    },
+    {
+      "description": "The negated sign convention applied to param_i and param_j (i.e., param_i = -params[:,8]) means these parameters will be negative even though the raw inference values are constrained to [1e-4, 150]. If param_i is used as a half-activation voltage for an additional channel, the sign negation must be consistent with the intended physiological range of that voltage (typically \u221260 to \u221220 mV for a K+ M-current). A mismatch would push the channel's steady-state activation outside the operating voltage range of the neuron and produce near-zero or near-unity gating across all voltages, rendering the channel ineffective.",
+      "severity": "major",
+      "location": "Parameter extraction block: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Verify the sign convention: if the raw inference range [1e-4, 150] maps to mV values meant to represent subthreshold voltages such as \u221250 mV, the negation is correct (\u221250 = \u2212(+50)). However, if param_i is meant to be used directly as a voltage offset near Vt (which is also negated), consider using `param_i = -params[:,8]` and adding Vt in the kinetics function, e.g., v_half = param_i + Vt, to keep the half-activation properly anchored. Add a comment clearly documenting the intended physiological range after transformation so future edits preserve correctness."
+    }
+  ]
+}

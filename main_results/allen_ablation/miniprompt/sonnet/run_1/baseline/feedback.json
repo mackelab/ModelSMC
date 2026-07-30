@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator allocates parameters for two additional ion channels (gbar_X1, gbar_X2, param_i, param_j) but none of these are implemented anywhere in the simulation loop. The channels are extracted from params but never contribute to membrane dynamics, causing a systematic mismatch with experimental recordings that include adaptation currents.",
+  "issues": [
+    {
+      "description": "The M-current (slow muscarinic K+ channel, I_M) is missing. Parameters gbar_X1, param_i, and param_j are reserved but unused. I_M = gbar_M * p * (V - E_K) with a slow activation gate 'p' is the most common adaptation current added to HH models and is the likely missing channel given gbar_X1 range [1e-4, 10] and param_j range up to 3000 (consistent with slow M-current time constants in ms).",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs: kinetics definition, state variable declaration, initialization, and simulation loop",
+      "suggestion": "1) Add M-current kinetics: `def p_inf_func(x): return 1.0 / (1.0 + Exp((x - param_i) / (-10.0)))` and `def tau_p_func(): return -param_j` (param_j is stored negative so -param_j gives positive tau). 2) Add state variable `p = torch.zeros(...)`. 3) Initialize `p[:, 0] = p_inf_func(V[:, 0])`. 4) In loop add `p[:, i] = p_inf_func(V[:,i-1]) + (p[:,i-1] - p_inf_func(V[:,i-1])) * Exp(-tstep / tau_p_func())`. 5) Add `+ gbar_X1 * p[:, i-1]` to tau_V_inv and `+ gbar_X1 * p[:, i-1] * E_K` to V_inf numerator."
+    },
+    {
+      "description": "gbar_X2 is extracted but never used. If a second channel is needed (e.g., slow inactivating K+ or A-type current), its absence further increases the likelihood discrepancy. However, adding both channels simultaneously may over-parameterize; verify whether the M-current alone reduces neg_avg_log_marginal_NLE below ~10 before adding X2.",
+      "severity": "major",
+      "location": "params extraction (line: gbar_X2 = params[:, 7]) and all four EDITABLE SECTIONs",
+      "suggestion": "First add the M-current (X1) and re-evaluate metrics. If residual discrepancy remains (NLE still >15), add a second slow K+ channel (e.g., AHP or A-current) using gbar_X2 with its own gating variable, following the same pattern: define inf and tau, declare/init state variable, update in loop, and add gbar_X2 * gate * (V - E_K) terms to tau_V_inv and V_inf."
+    }
+  ]
+}

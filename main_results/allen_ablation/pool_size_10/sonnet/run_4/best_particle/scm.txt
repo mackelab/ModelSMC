@@ -1,0 +1,5 @@
+- **V**: membrane potential driven by Na⁺, K⁺ (DR), leak, and A-type K⁺ (I_KA) currents plus injected current
+- **m, h / n**: HH Na⁺ gates (activation/inactivation) and K⁺ delayed-rectifier gate → spike shape
+- **a_gate**: I_KA fast Boltzmann activation (gbar_KA=params[6]) → rapid sub-threshold opening, ISI control
+- **b_gate**: I_KA slow inactivation shifted by v_shift (params[8]), tau scaled by tau_scale (params[9]) → resting inactivation level and recovery speed
+- **Assumptions**: tonic spiking only, no bursting; single compartment; first-order gating; additive Gaussian noise; only slot X1 used this iteration

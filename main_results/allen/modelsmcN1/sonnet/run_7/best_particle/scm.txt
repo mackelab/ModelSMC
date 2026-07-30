@@ -1,0 +1,5 @@
+- **V**: Membrane potential; noise inside V_inf (critical); C=1.0 CLOSED; E_Na=53.0 CLOSED; E_K=−107.0mV CLOSED; delta_E_leak=+2.0mV CLOSED; delta_Vh=+2.0mV CLOSED (+3=HARM 26.4, +4=PLATEAU 25.1)
+- **m, h / n**: Standard HH gates; delta_Vh=+2.0mV PERMANENTLY CLOSED on h-gate (alpha_h −17→−15mV, beta_h −40→−38mV from Vt); delta_Vm=0mV CLOSED; delta_Vn=0mV CLOSED
+- **p (X1, I_M)**: Slow muscarinic K⁺; gbar_M=0.003+0.065·σ(params[:,6]) CLOSED; Gaussian bell tau [1,81]ms; tau_max_M coeff=75 CLOSED; V_half_M=−15mV CLOSED; k_M=10mV CLOSED; p^1 CLOSED
+- **r (X2, I_mAHP)**: Medium-AHP K⁺; gbar_mAHP=0.003+0.065·σ(params[:,7]) CLOSED; tau_r_eff=[6,31]ms CLOSED; NEW PROBE: V_half_mAHP=−22.0mV (was −20.0mV OPT NLE=24.8; only −18.0mV=HARM(25.4) explored in depolarising direction; −22mV hyperpolarising direction untested); k_mAHP=6mV CLOSED; r^1 CLOSED
+- **FORBIDDEN**: I_SK, I_h, I_NaP, I_A, I_sAHP, bursting; V_half_mAHP PROBE: {−20=OPT(24.8), −18=HARM(25.4), −22=THIS PROBE; NLE<24.8→close −22; NLE≈24.8→close at −20; NLE>24.8→close at −20}

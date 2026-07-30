@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered), N = S+I+R conserved
+- **S→I**: Reed-Frost Binomial: new_SI ~ Binomial(S, 1−exp(−β·I/N)), β ∈ [0.10, 0.90]
+- **I→R**: Reed-Frost Binomial: new_IR ~ Binomial(I, 1−exp(−γ)), γ ∈ [0.05, 0.33]
+- **Stochasticity**: canonical discrete-time stochastic SIR, variance ~ Np(1−p) ~ √mean
+- **Assumptions**: closed population, Poisson-process contact, simultaneous transitions from pre-step compartments

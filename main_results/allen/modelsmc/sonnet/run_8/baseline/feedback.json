@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator extracts gbar_X1, gbar_X2, param_i, and param_j from params but never uses them in any channel kinetics or current equations. All four editable sections remain empty, meaning no additional ion channel has been implemented. The high neg_avg_log_marginal_NLE (27.1) indicates substantial model mismatch that the base HH model alone cannot capture. For tonic, regularly-spaced spiking without bursting, a slow non-inactivating M-type potassium current (I_M) is the canonical missing mechanism: it modulates spike-frequency adaptation and resting potential without inducing bursting or oscillatory instabilities. gbar_X1 (range 1e-4 to 10 mS/cm\u00b2) should serve as its conductance, param_i (negated param, so effectively negative mV) as the half-activation voltage V_half, and param_j can optionally scale the activation time constant.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted but never referenced in any kinetic function or current term. Consequently the model is a plain HH neuron with no fitted additional dynamics, producing large systematic discrepancies in spike count, mean stimulation voltage, variance, and higher-order moments.",
+      "severity": "critical",
+      "location": "All four '# ===== BEGIN EDITABLE SECTION =====' blocks (kinetics, state variable declaration, initialization, simulation loop tau_V_inv/V_inf)",
+      "suggestion": "Implement an M-type slow K+ current using gbar_X1. (1) In the kinetics section add: `def p_inf(x): return 1.0 / (1.0 + Exp((param_i - x) / 10.0))` and `def tau_p(x): return torch.clamp(1.0 / (3.3 * (Exp((x - param_i) / 20.0) + Exp(-(x - param_i) / 20.0))), min=tstep)` \u2014 param_i acts as V_half (will be inferred as ~-35 mV). (2) Declare state tensor `p = torch.zeros(...)`. (3) Initialize `p[:, 0] = p_inf(V[:, 0])`. (4) In the loop compute `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p(V[:, i-1]))` and add `+ gbar_X1 * p[:, i-1]` to tau_V_inv and `+ gbar_X1 * p[:, i-1] * E_K` to the numerator of V_inf."
+    },
+    {
+      "description": "With only the base HH channels active, the model cannot reproduce the correct resting-potential statistics (metrics 2 and 3) or the voltage distribution shape during stimulation (skewness, kurtosis \u2014 metrics 6 and 7), because the slow sub-threshold K+ conductance that sets tonic resting polarisation is absent.",
+      "severity": "major",
+      "location": "tau_V_inv and V_inf computation inside the simulation loop",
+      "suggestion": "After adding the M-current gating variable p as described above, include its contribution directly in tau_V_inv as `+ gbar_X1 * p[:, i-1]` and in the V_inf numerator as `+ gbar_X1 * p[:, i-1] * E_K`. This ensures the slow K+ conductance depolarises the effective leak at rest and correctly shapes the inter-spike voltage trajectory, reducing discrepancies in mean resting potential, variance, skewness and kurtosis without introducing bursting dynamics."
+    }
+  ]
+}

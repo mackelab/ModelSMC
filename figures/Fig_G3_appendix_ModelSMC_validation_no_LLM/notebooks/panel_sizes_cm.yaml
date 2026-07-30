@@ -1,0 +1,11 @@
+panel_resampling_weights:
+  width_cm: 7.0
+  height_cm: 5.75
+
+panel_trajectory:
+  width_cm: 10.145
+  height_cm: 3.5
+
+total:
+  width_cm: 17.145
+  height_cm: 6.5

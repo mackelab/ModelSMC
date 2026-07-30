@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Two compounding issues drive the poor fit (neg_avg_log_marginal_NLE = 24.9): (1) the stochastic noise term is embedded inside the V_inf computation and therefore passes through the exponential-Euler smoothing filter, grossly distorting all higher-order voltage statistics (variance, skewness, kurtosis); and (2) the A-current inactivation half-voltage is anchored at Vt \u2212 56 mV, which places it near \u2212116 mV for typical Vt \u2248 \u221260 mV \u2014 far too hyperpolarized for physiological Kv4 channels and preventing meaningful inactivation/de-inactivation cycling during tonic spiking.",
+  "issues": [
+    {
+      "description": "Noise term inside V_inf gets exponentially smoothed. The line `nois_fact * randn / sqrt(dt)` is placed in the V_inf numerator, so the update becomes `V[i] = V_inf(noisy) + (V_prev - V_inf(noisy)) * exp(-dt * tau_V_inv)`. The exponential factor partially cancels the noise, making its effective amplitude strongly dependent on the instantaneous membrane conductance. This corrupts the resting-potential std dev (metric 3), voltage variance (metric 5), skewness (metric 6), and kurtosis (metric 7), all of which are sensitive summary statistics used in the NLE.",
+      "severity": "critical",
+      "location": "V_inf computation block and V[:, i] update, inside the time-integration loop",
+      "suggestion": "Remove the noise from the V_inf numerator and add it directly to the voltage after the deterministic exponential-Euler step: `V_det = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv)` then `V[:, i] = V_det + nois_fact * torch.randn(batch_size, generator=generator, device=device) / (tstep ** 0.5)`. This preserves the correct white-noise power spectrum and decouples stochastic from deterministic integration."
+    },
+    {
+      "description": "A-current inactivation half-voltage (Vt \u2212 56 mV) is physiologically unrealistic. With a typical inferred Vt \u2248 \u221260 mV, V_half_b \u2248 \u2212116 mV \u2014 well beyond the range of any known K\u207a channel. At resting potential (~\u221265 mV), b_inf_A evaluates to \u2248 1.0 (fully de-inactivated), and because activation a_inf is near 0 at rest, the A-current never substantially activates or inactivates between spikes. This makes the added I_A channel nearly inoperative for shaping inter-spike intervals, which is its stated purpose, contributing to a poor match in spike count (metric 1) and mean stimulation voltage (metric 4).",
+      "severity": "major",
+      "location": "b_inf_A definition and associated V_half_b anchor `(Vt - 56.0)`",
+      "suggestion": "Shift the inactivation half-voltage to a physiologically validated range: use `V_half_b = Vt - 18.0` (\u2248 \u221278 mV for typical Vt), consistent with Kv4 recordings in cortical neurons. This places the channel in partial inactivation at rest and allows meaningful recovery between action potentials. Optionally, expose V_half_b as the X2 inferred parameter (params[:,8]) so the optimizer can tune it, with a prior centred around Vt \u2212 18 mV and range [Vt \u2212 35, Vt \u2212 5] mV."
+    }
+  ]
+}

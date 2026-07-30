@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The COVID-specific parameter bound tightening in v42 (beta: 0.10\u20130.50, gamma: 0.05\u20130.15) caused catastrophic regression from NLE=-3.74 (v37, best-ever) to NLE=-608. Restricting the hypothesis space with epidemiological priors backfired: the SBI posterior cannot cover the actual training data distribution within these narrow bounds. The v37 parameter ranges (beta: 0.01\u20130.80, gamma: 0.01\u20130.50) must be restored in the `forward` method at the beta/gamma assignment lines.",
+  "issues": [
+    {
+      "description": "Beta bound 0.10 + 0.40*sigma_p0 (range 0.10\u20130.50) is too restrictive. NLE degraded from -3.74 (v37 wide bounds) to -608 (v42 narrow bounds). The SBI estimator requires the wider prior to locate valid posteriors for the actual training trajectories. The COVID-motivated tightening is empirically falsified by a 170x performance collapse.",
+      "severity": "critical",
+      "location": "forward() method: line `beta = 0.10 + 0.40 * sigma_p0`",
+      "suggestion": "Revert to v37 beta assignment: `beta = 0.01 + 0.79 * sigma_p0` giving range (0.01, 0.80). This is the only configuration that achieved NLE=-3.74 and must be treated as an immutable invariant alongside the others listed in the docstring. Add it as Invariant 17: BETA BOUND MUST BE 0.01+0.79*sigma (v42 tightening \u2192 NLE=-608)."
+    },
+    {
+      "description": "Gamma bound 0.05 + 0.10*sigma_p1 (range 0.05\u20130.15) is too restrictive. The wide range 0.01\u20130.50 used in v37 was essential for SBI to explore sufficient gamma diversity. Locking gamma to a narrow COVID-plausible interval prevents posterior concentration on trajectories that may reflect faster or slower dynamics than assumed. The empirical NLE=-608 vs -3.74 proves this tightening is harmful regardless of epidemiological motivation.",
+      "severity": "major",
+      "location": "forward() method: line `gamma = 0.05 + 0.10 * sigma_p1`",
+      "suggestion": "Revert to v37 gamma assignment: `gamma = 0.01 + 0.49 * sigma_p1` giving range (0.01, 0.50). Record as Invariant 18: GAMMA BOUND MUST BE 0.01+0.49*sigma (v42 tightening \u2192 NLE=-608). Do not apply any epidemiological narrowing unless NLE improves beyond -3.74."
+    }
+  ]
+}

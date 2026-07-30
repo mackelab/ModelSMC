@@ -1,0 +1,10 @@
+name: claude_sonnet46
+model: "anthropic/claude-sonnet-4-6"
+temperature: 1.0
+max_tokens: 20000
+thinking:
+  type: "enabled"
+  budget_tokens: 8000
+
+defaults:
+  - claude_base

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator achieves neg_avg_log_marginal_NLE=23.2, indicating poor posterior fit across the 7 summary statistics. Two interacting problems are responsible: (1) params[:,7] (gbar_X2) is entirely unused despite being an inferred parameter, leaving a free conductance slot that could substantially improve the fit \u2014 its waste also distorts the inference posterior by introducing a degenerate dimension. (2) The tau_p prior lower bound of 1e-4 ms means exp(-dt/tau_p) collapses to ~0 when tau_p << dt (~0.025 ms for typical dt=0.1 ms), effectively locking the M-gate permanently at p_inf and removing all IKM dynamics; inference can silently exploit this without the channel having any temporal filtering effect.",
+  "issues": [
+    {
+      "description": "params[:,7] (gbar_X2) is inferred but never used. This wastes an expressive degree of freedom and corrupts the posterior \u2014 the inference engine sees a free parameter with no effect on simulated data, which collapses its marginal and degrades NLE globally. Adding a second channel driven by gbar_X2 would improve all 7 summary statistics by providing an independent biophysical handle (e.g., a persistent sodium current INaP or slow Ca2+-activated K+ current sKCa using fixed kinetic parameters, since params[:,8]/[:,9] are already consumed by IKM).",
+      "severity": "critical",
+      "location": "Parameter extraction block and main integration loop \u2014 params[:, 7] is extracted as gbar_X2 but then entirely dropped before the loop",
+      "suggestion": "Implement a second channel X2 using gbar_X2 = params[:,7] with fixed kinetics (no additional free parameters). For tonic spiking, a persistent sodium current INaP with fixed Boltzmann half-activation V_half_NaP=-55 mV, slope k=5 mV, and time constant tau_q=1 ms is appropriate: q_inf(V)=1/(1+exp(-(V-(-55))/5)), dq/dt=(q_inf-q)/1. Add the current term gbar_X2 * q * (V - E_Na) to the conductance summation. This adds a depolarising drive that can correct mean voltage during stimulation and spike-count mismatches without producing bursting."
+    },
+    {
+      "description": "tau_p = params[:,9] has prior range [1e-4, 3000] ms. When tau_p < dt (e.g., 1e-4 ms vs dt=0.1 ms), Exp(-tstep/tau_p)=exp(-1000)\u22480, so the IKM p-gate always equals p_inf(V) instantaneously \u2014 the channel becomes a purely conductance-scaled Boltzmann function with no temporal dynamics. Inference can exploit this degenerate limit: the posterior may favour tiny tau_p values to use IKM as a static conductance, but this representation is unreliable and conflates two functionally distinct operating modes, inflating NLE variance.",
+      "severity": "major",
+      "location": "p-gate exponential Euler update: `p[:, i] = p_ss + (p[:, i-1] - p_ss) * Exp(-tstep / tau_p)`",
+      "suggestion": "Clamp tau_p to a physiologically meaningful minimum to prevent degenerate collapse: replace `tau_p = params[:, 9].float()` with `tau_p = torch.clamp(params[:, 9].float(), min=1.0)` (1 ms floor). This ensures the p-gate always has finite temporal dynamics and the inference posterior for params[:,9] remains identifiable. Alternatively, reparametrise as `tau_p = 1.0 + torch.nn.functional.softplus(params[:, 9])` to guarantee positivity with a soft lower bound while preserving the full dynamic range for large values."
+    }
+  ]
+}

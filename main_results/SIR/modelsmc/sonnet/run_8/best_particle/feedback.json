@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The Gaussian additive noise model with noise_scale=0.5 is physically incorrect for a discrete SIR system and produces poorly calibrated likelihoods (neg_avg_log_marginal_NLE=-477). The standard stochastic SIR model uses binomial transitions \u2014 Binomial(S, 1-exp(-beta*I/N)) for new infections and Binomial(I, gamma) for new recoveries \u2014 which correctly capture discrete integer population dynamics and produce sharply peaked, realistic likelihoods. The current Gaussian perturbation inflates variance and misrepresents the true data-generating distribution, severely hurting NLE-based SBI.",
+  "issues": [
+    {
+      "description": "Incorrect stochastic model: Gaussian additive noise on ODE flows does not reflect the true stochastic SIR process. For integer-valued compartments, new infections should be drawn as new_inf = rng.binomial(int(S), 1.0 - np.exp(-beta * I / N)) and new recoveries as new_rec = rng.binomial(int(I), gamma). This is the canonical discrete-time stochastic SIR (Euler-Multinomial) and produces likelihoods that tightly match real epidemic data. The current noise model inflates variance arbitrarily and produces a poorly specified likelihood surface, leading to the very low NLE scores observed.",
+      "severity": "critical",
+      "location": "forward() method \u2014 noise computation block (~lines 80-100) and the flow update block",
+      "suggestion": "Replace the Gaussian noise block entirely with: new_inf = int(rng.binomial(max(0, int(S)), float(np.clip(1.0 - np.exp(-beta * I / N), 0.0, 1.0)))); new_rec = int(rng.binomial(max(0, int(I)), float(np.clip(gamma, 0.0, 1.0)))). Then set S_new = S - new_inf, I_new = I + new_inf - new_rec, R_new = N - S_new - I_new. Remove noise_scale, sigma_inf, sigma_rec, delta_inf, delta_rec entirely."
+    },
+    {
+      "description": "noise_scale=0.5 produces excessively large stochastic perturbations relative to flow magnitudes, especially at high infection flows (e.g., flow=400 gives sigma~10 individuals per step). This over-dispersed noise makes it difficult for the NLE neural network to learn a tight likelihood, and it causes the simulator to deviate significantly from the true ODE trajectory, reducing the quality of SBI parameter recovery.",
+      "severity": "major",
+      "location": "forward() method \u2014 line: noise_scale = 0.5",
+      "suggestion": "If Gaussian noise is retained as a fallback, reduce noise_scale to at most 0.05 or derive it from a Poisson approximation (noise_scale=1.0 gives pure Poisson-like variance; use 0.0 for near-deterministic ODE). However, the preferred fix is to replace Gaussian noise entirely with binomial draws as described in the critical issue above, eliminating noise_scale altogether."
+    }
+  ]
+}

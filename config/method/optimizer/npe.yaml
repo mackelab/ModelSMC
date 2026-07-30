@@ -1,0 +1,13 @@
+defaults:
+  - base
+
+name: npe
+
+# NPE-specific parameters
+z_score_x: "independent"  # Z-score normalization for observations
+
+# Parameter estimation settings
+sampling_timeout: 60  # Timeout in seconds for posterior sampling (per sample)
+num_samples_posterior: 5_000  # Number of posterior samples to draw
+evaluation_mode: max_log_posterior  # Use MAP estimation for NPE
+max_num_epochs: 500

@@ -1,0 +1,55 @@
+# @package _global_
+name: ablation_allen_modelsmc_sonnet_MSE
+logging:
+  level: "INFO"
+
+method:
+  max_iter: 15
+  few_shot_examples: 3
+  max_num_itr_no_improvement: 15
+  alpha: 0.8
+  particle_pool_size: 50
+  ess_threshold: 0.5
+  temperature: 1.0
+  use_chain_of_thought: False  # disabled: using native reasoning instead
+
+  optimizer:
+    num_simulations: 5000
+    evaluation_mode: power_scaling
+    temperature: 1e-5
+    save_parameter_estimates: true
+
+  evaluator:
+    evidence_estimation_mode: posterior_samples
+    n_samples_evidence_estimation: 500
+    sampling_timeout: 60 # per observation
+
+task:
+  termination_val: null
+  optimization_direction: min
+  learnable_summary_statistics: false
+  metric_to_optimize: mse
+  compute_parameter_estimate: true
+
+llm:
+  max_tokens: 20000
+  thinking:
+    type: "enabled"
+    budget_tokens: 8000
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      seed:  0, 1, 2, 3, 4
+
+defaults:
+  - override /partition: a100_1
+  - override /launcher: slurm
+  - override /task: allen_level0
+  - override /method: smc_method
+  - override /method/evaluator: base
+  - override /method/optimizer: npe_pfn
+  - override /method/evaluator/likelihood_estimator: NLE_PFN
+  - override /llm: claude_sonnet46
+  - _self_

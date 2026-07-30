@@ -1,0 +1,68 @@
+name: kidney_modelsmc_sonnet
+seed: 1
+delete_dspy_cache: true
+logging:
+  level: INFO
+method:
+  max_iter: 15
+  few_shot_examples: 3
+  verbose: false
+  max_num_itr_no_improvement: 15
+  use_chain_of_thought: false
+  req_num_cpus_per_ray_thread: 1
+  req_num_gpus_per_ray_thread: 1
+  evaluator:
+    likelihood_estimator: NLE_PFN
+    n_samples_evidence_estimation: 500
+    prior_sampling_fallback_factor: 10
+    evidence_estimation_mode: posterior_samples
+    sampling_timeout: 200
+    bs_marginals: null
+    plotting: true
+    inter_quantile_range:
+    - 0.99
+    - 0.9
+    - 0.75
+    - 0.5
+    - 0.25
+    - 0.1
+    - 0.01
+  optimizer:
+    plotting: true
+    num_simulations: 2000
+    save_parameter_estimates: true
+    name: npe_pfn
+    sampling_timeout: 200
+    num_samples_posterior: 5000
+    evaluation_mode: power_scaling
+    temperature: 1.0e-05
+  name: smc_method
+  alpha: 0.8
+  particle_pool_size: 50
+  ess_threshold: 0.5
+  temperature: 1.0
+  feedback_mode: llm_only
+task:
+  num_obs_train: 0
+  num_obs_valid: 1
+  metric_to_optimize: neg_log_marginal_NLE
+  optimization_direction: min
+  termination_val: null
+  plotting: true
+  learnable_summary_statistics: false
+  name: kidney_aldo_level0
+  compute_parameter_estimate: false
+llm:
+  api_key_name: ANTHROPIC_API_KEY
+  max_tokens: 20000
+  temperature: 1.0
+  cache: false
+  thinking:
+    type: enabled
+    budget_tokens: 8000
+  name: claude_sonnet46
+  model: anthropic/claude-sonnet-4-6
+sweeper:
+  name: null
+  objective: null
+run_id: dc08a826-d140-4735-9cb6-1a5e65740486

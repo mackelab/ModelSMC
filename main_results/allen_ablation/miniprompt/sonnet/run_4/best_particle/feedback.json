@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The IA (A-type K+) Connor-Stevens channel kinetics are incorrectly implemented using HH Na+-style alpha/beta rate functions (alpha_a mimics alpha_m, alpha_b mimics alpha_h), which do not reproduce the correct activation/inactivation voltage-dependence. This causes systematic errors in spike repolarization and sub-threshold dynamics, explaining the high neg_avg_log_marginal_NLE of 24. The issue is in the `alpha_a`, `beta_a`, `alpha_b`, `beta_b` functions and the resulting gate updates for `a` and `b`.",
+  "issues": [
+    {
+      "description": "IA channel gate kinetics use incorrect HH-style alpha/beta functions copied from Na+ m/h gates with minor offsets. Connor-Stevens IA has distinct sigmoid steady-state functions and explicit voltage-dependent time constants, not the efun/Exp forms used here. The current alpha_a closely mirrors alpha_m, and alpha_b/beta_b mirror alpha_h/beta_h, causing wrong activation voltage range (~-30 mV instead of the correct ~-60 mV half-activation for IA) and wrong time constants.",
+      "severity": "critical",
+      "location": "def alpha_a, beta_a, alpha_b, beta_b and a/b gate updates in the simulation loop",
+      "suggestion": "Replace the IA gate kinetics with proper Connor-Stevens formulations. Use sigmoid-based steady states: `a_inf = (0.0761 * Exp(0.0314*(V+94.22)) / (1 + Exp(0.0346*(V+1.17))))**(1.0/3.0)`, `b_inf = (1.0 / (1.0 + Exp(0.0688*(V+53.3))))**4`, and explicit time constants `tau_a = (0.3632 + 1.158/(1+Exp(0.0497*(V+55.96)))) / 1.0`, `tau_b = (1.24 + 2.678/(1+Exp(0.0624*(V+50.0)))) / 1.0`. Integrate `a` with exponent 3 (i.e. `a**3 * b`) or refit to match experimental data. This corrects the sub-threshold activation range and repolarization speed of IA."
+    },
+    {
+      "description": "The IM p-gate time constant is clamped to a maximum of 500 ms (`torch.clamp(-param_j, min=1.0, max=500.0)`), but the raw `tau_x(a_p, b_p)` from the efun-based alpha/beta_p is already in the ~10-100 ms range at physiological voltages. The combined scale factor can push effective \u03c4_p to unrealistically large values for some parameter samples, freezing the p-gate and preventing proper spike-frequency adaptation.",
+      "severity": "major",
+      "location": "Line: `tau_p_scaled = tau_x(a_p, b_p) * torch.clamp(-param_j, min=1.0, max=500.0)`",
+      "suggestion": "Reparameterize the IM time constant to directly set \u03c4_p without a multiplicative scale on the alpha/beta-derived \u03c4. For example, use a fixed physiological \u03c4_p expression like `tau_p = param_j_positive / (3.3e-3 * 2)` clamped to [10, 1000] ms, or replace the current `alpha_p/beta_p` prefactor with `param_j`-dependent scaling: `tau_p_scaled = torch.clamp(tau_x(a_p, b_p), min=10.0, max=1000.0)`. This prevents the multiplicative blow-up and ensures the IM adaptation operates in the correct ~50\u2013500 ms timescale."
+    }
+  ]
+}

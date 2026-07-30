@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) have their conductance parameters extracted (gbar_X1, gbar_X2, param_i, param_j) but all editable sections remain empty. The model is running as a plain 3-variable HH model with no additional currents, state variables, or kinetic contributions from the allocated channels. This explains the high neg_avg_log_marginal_NLE (~26.4), as the base HH model alone cannot reproduce the observed tonic spiking voltage statistics.",
+  "issues": [
+    {
+      "description": "All editable sections are empty \u2014 gbar_X1 and its associated parameters (param_i, param_j) are extracted but never used. For regular tonic spiking without adaptation or bursting, an M-type slow K+ current (Kv7/KCNQ) is a canonical addition. It uses a single gating variable 'p' with voltage-dependent steady state and a slow time constant, and contributes a hyperpolarizing current that regulates inter-spike interval and spike count. param_i (negated, so negative value) can serve as the half-activation voltage for p_inf, and param_j (negated) as the slow time constant tau_p.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks throughout the forward() method",
+      "suggestion": "1) Add kinetics in first editable block: `def p_inf(x): return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))` and `tau_p = param_j` (shape: batch_size). 2) Add state variable: `p = torch.zeros((batch_size, time_steps), device=device)`. 3) Initialize: `p[:, 0] = p_inf(V[:, 0])`. 4) In the loop editable block, update: `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p)`. 5) Add to tau_V_inv: `+ gbar_X1 * p[:, i-1]`. 6) Add to V_inf numerator: `+ gbar_X1 * p[:, i-1] * E_K`."
+    },
+    {
+      "description": "param_i and param_j are extracted with a negation (`-params[:, 8]`, `-params[:, 9]`) which means they represent negative values, while the sampler draws positive values in [1e-4, 150] and [1e-4, 3000] respectively. For param_i as a half-activation voltage (e.g., around -35 mV) this negation is correct, but the tau_p derived from param_j will also be negative. A negative time constant will cause the gating variable to diverge exponentially. The tau must be kept positive.",
+      "severity": "major",
+      "location": "param_i and param_j extraction lines, and wherever tau_p is used in Exp(-tstep / tau_p)",
+      "suggestion": "Either remove the negation from param_j so `tau_p = params[:, 9].float()` (positive, in ms range up to 3000 ms which is appropriate for M-current), or take the absolute value: `tau_p = torch.abs(param_j)`. Keep the negation on param_i since it represents a negative half-activation voltage for the M-current (e.g., ~-35 mV). Also ensure tau_p is clamped away from zero: `tau_p = torch.clamp(tau_p, min=1e-3)`."
+    }
+  ]
+}

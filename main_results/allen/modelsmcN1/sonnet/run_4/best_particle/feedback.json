@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Critical bug in Na+ conductance computation in the integration loop (lines computing tau_V_inv and V_inf): the code uses `m3h * gbar_Na * h[:, i-1]` but m3h is already defined as `(m[:,i-1]**3) * h[:,i-1]`, so the effective Na+ conductance becomes gbar_Na * m^3 * h^2 instead of the correct gbar_Na * m^3 * h. This h-squaring distorts spike amplitude, spike width, and AHP depth, propagating errors into mean voltage during stimulation, voltage variance, skewness, and kurtosis statistics. The SBI posterior has compensated by learning inflated gbar_Na values, but this mis-specification reduces the model's ability to fit all summary statistics simultaneously.",
+  "issues": [
+    {
+      "description": "Na+ conductance is incorrectly squared in h: `m3h * gbar_Na * h[:, i-1]` computes gbar_Na * m^3 * h^2 because m3h already contains one factor of h. This reduces Na+ conductance during inactivation more than the standard HH model, distorting spike shape, firing threshold, and all voltage-distribution statistics (mean, variance, skewness, kurtosis).",
+      "severity": "critical",
+      "location": "Integration loop, Step 5a (tau_V_inv) and Step 5b (V_inf): lines `m3h * gbar_Na * h[:, i - 1]` and `m3h * gbar_Na * h[:, i - 1] * E_Na`",
+      "suggestion": "Replace `m3h * gbar_Na * h[:, i - 1]` with `m3h * gbar_Na` in both tau_V_inv and V_inf (and correspondingly replace `m3h * gbar_Na * h[:, i - 1] * E_Na` with `m3h * gbar_Na * E_Na`). The variable m3h already equals m^3 * h, so the Na+ conductance gbar_Na * m3h is already the standard HH form. No other changes are needed."
+    },
+    {
+      "description": "Ca2+ state is initialised to zero (Ca[:,0]=0) rather than its resting steady-state. At rest, m3h \u2248 7.5e-5, giving Ca_ss_rest = alpha_Ca * m3h * tau_Ca = 0.010 * 7.5e-5 * 80 \u2248 6e-4. Starting from 0 introduces a small transient in the pre-stimulus period that could inflate the standard deviation of the resting potential statistic.",
+      "severity": "minor",
+      "location": "State variable initialisation block, Ca[:,0] = 0 (implicit from torch.zeros)",
+      "suggestion": "After computing m3h at V_init, set Ca[:,0] = alpha_Ca * ((m[:,0]**3) * h[:,0]) * tau_Ca to initialise Ca at its resting steady-state. This eliminates the pre-stimulus Ca transient and reduces the resting-potential standard deviation error without any kinetic parameter changes."
+    }
+  ]
+}

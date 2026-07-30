@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted but never used anywhere in the simulation dynamics. The tau_V_inv and V_inf expressions do not include any X1/X2 channel contributions, so these inferred parameters have zero effect on the output \u2014 the simulator is effectively still a bare 3-channel HH model regardless of what values are inferred for slots 6-9.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are computed from params but are never referenced in tau_V_inv, V_inf, or any state-variable update. The simulator therefore ignores two full parameter slots, leaving the model unable to reproduce the tonic-spiking statistics (especially spike count, mean voltage during stimulation, and voltage variance) that a plain HH model cannot capture.",
+      "severity": "critical",
+      "location": "tau_V_inv and V_inf expressions in the simulation loop; all four '# ONLY ADD IF NECESSARY' editable sections are empty",
+      "suggestion": "Implement at least one additional channel using the X1 slot. A good choice for regular tonic spiking is a slow M-type K+ current (Kv7/KCNQ): add gating variable p with sigmoid steady-state p_inf = 1/(1+exp(-(V - param_i)/10)) and time constant tau_p = param_j (constant or weakly voltage-dependent). Initialize p[:,0] = p_inf at V[:,0], update it each step like n/m/h, and add gbar_X1 * p * (V - E_K) to the conductance sum in tau_V_inv and gbar_X1 * p * E_K to the numerator of V_inf. This single slow K+ channel is sufficient to regularize inter-spike intervals for tonic spiking without introducing bursting."
+    },
+    {
+      "description": "param_i and param_j are negated when extracted (e.g., param_i = -params[:,8]) even though the docstring states their raw values are positive in [1e-4, 150] and [1e-4, 3000]. Using negated values as a half-activation voltage or time constant will push kinetics into unphysical ranges (negative time constants or reversed gating curves), causing numerical instability or degenerate channel behavior.",
+      "severity": "major",
+      "location": "Lines: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Remove the negation: use `param_i = params[:, 8].float()` and `param_j = params[:, 9].float()`. For the M-current, interpret param_i as the half-activation voltage (e.g., ~35 mV above rest) and param_j as the slow time constant in ms. Since E_leak is also negated (`E_leak = -params[:,3]`), verify that convention is intentional and consistent with the prior range for that parameter."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The IKM half-activation parameterization (params[:,8]) only allows the activation threshold to shift in the hyperpolarizing direction (effective range: -185 to -35 mV), blocking inference from exploring depolarized activations that may better match the data. Compounding this, the X2 channel slot (params[:,7] and params[:,9]) is completely unused, forfeiting a full additional tunable channel that could improve fit of resting-potential statistics, voltage variance, skewness, and kurtosis.",
+  "issues": [
+    {
+      "description": "The halfact_shift is computed as -params[:,8] where params[:,8] \u2208 [1e-4, 150], so halfact_shift \u2208 [-150, ~0] and the effective IKM half-activation = -35 + halfact_shift \u2208 [-185, -35] mV. The canonical value (-35 mV) sits at the extreme upper end of this range, meaning inference can only push the activation threshold deeper into hyperpolarization. If the data requires IKM to activate closer to spike threshold (e.g., -20 to -10 mV), the current parameterization makes this impossible and inference will get stuck at the boundary. When gbar_M is large and halfact_shift is very negative (e.g., -150 mV), p_inf \u2248 1 everywhere, shorting the membrane to E_K and silencing all spiking.",
+      "severity": "critical",
+      "location": "halfact_shift = -params[:, 8].float()  and  def alpha_p / beta_p",
+      "suggestion": "Re-center the half-activation offset so it spans both hyper- and depolarizing directions. For example, interpret params[:,8] \u2208 [1e-4, 150] as a bipolar shift by subtracting 75: `halfact_M = -35.0 + (params[:,8] - 75.0)`, giving an effective half-activation range of approximately [-110, +40] mV. Replace `x + 35.0 + halfact_shift` with `x - halfact_M` in alpha_p and beta_p (i.e., `v1 = x - halfact_M`). This allows inference to explore the full physiologically relevant range around -35 mV without forcing a one-directional bias."
+    },
+    {
+      "description": "The X2 channel slot (params[:,7] as conductance, params[:,9] as a second kinetic parameter) is completely unused ('parsimony' label). The system explicitly allocates two tunable-parameter channel slots; leaving X2 empty sacrifices modeling capacity that could resolve persistent discrepancies in resting-potential mean/std, voltage skewness, and kurtosis. A hyperpolarization-activated cation current (Ih/HCN) is a natural fit: it activates below -60 mV during the interspike interval, provides a depolarizing sag that shapes the resting Vm distribution, and does not produce bursting or sustained high-frequency firing.",
+      "severity": "major",
+      "location": "params[:,7] and params[:,9] \u2014 currently unused",
+      "suggestion": "Implement Ih in the X2 slot. Use params[:,7] as gbar_h (conductance, mS/cm\u00b2) and params[:,9] as the half-activation voltage shift for the h-gate (stored positive, recentered around -75 mV, e.g., `halfact_h = -75.0 + (params[:,9] - 75.0)`). Standard Ih kinetics: `q_inf = 1/(1 + exp((V + 75 + shift)/5.5))`, `tau_q \u2248 1/(0.001*exp(-0.086*V) + 0.001*exp(0.07*V))` (ms), reversal E_h \u2248 -25 mV. Add the Ih driving-force term `gbar_h * q_prev * (Vp - E_h)` to the dV/dt equation and update the q gate with exponential Euler. This adds a sag current that regularizes the interspike hyperpolarization and improves the voltage distribution shape statistics."
+    }
+  ]
+}

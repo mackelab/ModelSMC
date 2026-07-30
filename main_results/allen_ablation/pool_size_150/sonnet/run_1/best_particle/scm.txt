@@ -1,0 +1,5 @@
+- **V**: membrane voltage (mV), driven by Na⁺, K⁺, leak, M-type K⁺ current, and injected current
+- **m, h**: Na⁺ channel activation/inactivation gates → fast spike upstroke and termination
+- **n**: delayed-rectifier K⁺ activation gate → spike repolarization and AHP
+- **p**: M-type slow K⁺ (Kv7) activation gate, single non-inactivating; half-activation tuned by params[:,8], kinetics by params[:,9]
+- **Assumptions**: tonic regular spiking only; alpha/beta formulation for p gate; params[:,8] used as positive voltage offset from Vt (removes forced-negative constraint from prior iterations)

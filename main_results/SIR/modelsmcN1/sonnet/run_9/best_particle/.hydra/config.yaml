@@ -1,0 +1,78 @@
+name: SIR_ModelSMC_N_1_sonnet
+seed: 9
+delete_dspy_cache: true
+logging:
+  level: INFO
+method:
+  max_iter: 150
+  few_shot_examples: 3
+  verbose: false
+  max_num_itr_no_improvement: 150
+  use_chain_of_thought: false
+  req_num_cpus_per_ray_thread: 1
+  req_num_gpus_per_ray_thread: 0
+  evaluator:
+    likelihood_estimator: NLE
+    NLE_max_num_epochs: 500
+    n_samples_evidence_estimation: 5000
+    prior_sampling_fallback_factor: 10
+    evidence_estimation_mode: prior_samples
+    sampling_timeout: 10
+    bs_marginals: 5000
+    plotting: true
+    inter_quantile_range:
+    - 0.99
+    - 0.9
+    - 0.75
+    - 0.5
+    - 0.25
+    - 0.1
+    - 0.01
+  optimizer:
+    plotting: true
+    num_simulations: 1000
+    save_parameter_estimates: true
+    name: npe
+    z_score_x: independent
+    sampling_timeout: 300
+    num_samples_posterior: 10000
+    evaluation_mode: max_log_posterior
+    max_num_epochs: 500
+    train_sss: false
+  name: smc_method
+  alpha: 0.0
+  particle_pool_size: 1
+  ess_threshold: 0.5
+  temperature: 1.0
+  feedback_mode: llm_only
+task:
+  num_obs_train: null
+  num_obs_valid: null
+  metric_to_optimize: neg_log_marginal_NLE
+  optimization_direction: min
+  termination_val: null
+  plotting: true
+  learnable_summary_statistics: false
+  n_samples_wsd_mmd: 200
+  mmd_sigma: 0.2
+  train_embedding_config:
+    n_iter: 2000
+    lr: 0.0001
+    bs: 128
+    val_freq: 50
+  name: SIR_level3
+  compute_parameter_estimate: false
+llm:
+  api_key_name: ANTHROPIC_API_KEY
+  max_tokens: 20000
+  temperature: 1.0
+  cache: false
+  thinking:
+    type: enabled
+    budget_tokens: 8000
+  name: claude_sonnet46
+  model: anthropic/claude-sonnet-4-6
+sweeper:
+  name: null
+  objective: null
+run_id: ff7f72da-f45a-4200-9869-cb0ae5324161

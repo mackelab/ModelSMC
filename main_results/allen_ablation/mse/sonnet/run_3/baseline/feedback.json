@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The dominant failure is a massive skewness error (MSE=106 on dim 6), followed by significant errors in spike count (2.38), resting SD (1.89), voltage variance (1.95), and kurtosis (6.57). These patterns collectively indicate a missing slow, voltage-gated K\u207a current \u2014 specifically an M-type current (IM) \u2014 that shapes the after-hyperpolarization depth and duration, controls interspike-interval dynamics, and produces the asymmetric voltage distribution characteristic of tonic spiking cells. The base HH model lacks any non-inactivating outward current to regulate adaptation and subthreshold membrane potential shape.",
+  "issues": [
+    {
+      "description": "Missing M-type slow K\u207a current (IM). The skewness MSE of 106 is catastrophically large and is the dominant error. This almost certainly reflects a missing non-inactivating K\u207a current that shapes the voltage distribution between spikes (after-hyperpolarization), causing the simulated distribution to be skewed in the wrong direction or with the wrong magnitude relative to experimental recordings. The spike-count error (2.38) and kurtosis error (6.57) are consistent with absence of this adaptation current. The M-current has a single gating variable p, activates near rest (~-35 mV), does not inactivate, and is well-suited for tonic spiking without burst dynamics.",
+      "severity": "critical",
+      "location": "EDITABLE SECTION blocks \u2014 kinetics, state variable declaration, initialization, loop update, tau_V_inv, and V_inf expressions",
+      "suggestion": "Add an M-current using gbar_X1 and param_i. In the kinetics section add:\n\n  def p_inf(x):\n      return 1.0 / (1.0 + Exp(-(x - param_i - 35.0) / 10.0))\n\n  def tau_p_fn(x):\n      return 1.0 / (0.02 / (1.0 + Exp(-(x - param_i - 20.0) / 5.0)) + 0.01)\n\nDeclare state variable p, initialize with p_inf(V[:,0]), and update each step:\n\n  p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p_fn(V[:, i-1]))\n\nAdd to tau_V_inv: + gbar_X1 * p[:, i-1]\nAdd to V_inf numerator: + gbar_X1 * p[:, i-1] * E_K\n\nThis gives a slow, non-inactivating K\u207a current that modulates after-hyperpolarization and fixes the skewness and kurtosis errors."
+    },
+    {
+      "description": "Resting-potential standard deviation error (MSE=1.89, dim 3) persists alongside variance error (MSE=1.95, dim 5), suggesting that subthreshold voltage fluctuation dynamics are not correctly captured. While nois_fact accounts for some stochasticity, a slow recovery current (like IM) also stabilizes and shapes the subthreshold membrane potential, reducing excess fluctuation variance. Without IM, the membrane is more freely driven by noise and input, inflating both variance and its higher moments.",
+      "severity": "major",
+      "location": "V_inf and tau_V_inv expressions in the simulation loop; nois_fact parameter",
+      "suggestion": "After adding the M-current as described above, re-examine whether the variance and resting-SD errors are resolved. The M-current increases the effective conductance near rest (adding to tau_V_inv), which inherently damps voltage fluctuations (noise divisor effect). If resting-SD error persists, verify that nois_fact is allowed to vary freely as an inferred parameter, and confirm E_K is set correctly to -107 mV so that the M-current pulls voltage toward the appropriate hyperpolarized level between spikes."
+    }
+  ]
+}

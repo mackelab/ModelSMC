@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Two compounding issues degrade the NLE (23.3): (1) The tunable inactivation half-voltage for the A-current (V_half_inact_A = -params[:,9]) draws from a prior spanning [1e-4, 3000] mV, placing the physiological range (~60\u201390 mV) in the bottom ~3% of the prior volume, severely hampering SBI efficiency. (2) Channel slot X2 remains completely unused, leaving a full tunable conductance plus kinetic parameter unexploited despite the model still having a poor fit to resting-state and voltage-distribution statistics.",
+  "issues": [
+    {
+      "description": "The prior for params[:,9] (the raw magnitude) spans [1e-4, 3000], so V_half_inact_A = -params[:,9] ranges from nearly 0 to -3000 mV. Fewer than 3% of prior samples land in the physiologically relevant window (-60 to -90 mV). This means the vast majority of simulations produce biologically implausible A-current inactivation curves, yielding wasted evaluations and a poorly-informed posterior that cannot reliably match spike count or voltage statistics.",
+      "severity": "critical",
+      "location": "V_half_inact_A = -params[:, 9].float() and associated prior range comment",
+      "suggestion": "Remap the parameter so the prior naturally covers the physiological range. For example, define V_half_inact_A = -(params[:,9] + 50.0) with params[:,9] ~ Uniform[0, 60] (covering -50 to -110 mV), or use params[:,9] ~ Uniform[60, 90] and set V_half_inact_A = -params[:,9] directly. This concentrates prior mass where the A-current inactivation is physiologically meaningful and will dramatically improve SBI sample efficiency."
+    },
+    {
+      "description": "Slot X2 (params[:,7] = gbar_X2 and params[:,8] = param_i) is entirely unused. The persisting NLE of 23.3 indicates the single-channel IA extension is insufficient to match all seven summary statistics \u2014 particularly mean resting potential, resting Vsd, and higher-order voltage moments (skewness, kurtosis). A hyperpolarization-activated cation current (Ih, h-current) in slot X2 is well-suited: it activates at rest and below, sets a depolarized resting potential (~-65 mV), shapes inter-spike subthreshold dynamics, and does not produce bursting or adaptation.",
+      "severity": "major",
+      "location": "Slot X2 parameter assignments (params[:,7], params[:,8]) and simulation loop",
+      "suggestion": "Implement Ih in slot X2: gbar_h = params[:,7], with reversal E_h = -30 mV (fixed). Use a single sigmoid gating variable q with dq/dt = (q_inf(V) - q) / tau_q, where q_inf(V) = 1/(1 + exp((V - V_half_h)/k_h)), V_half_h = -params[:,8] (tunable, prior e.g. [60,90] covering -60 to -90 mV), k_h = -10 mV (fixed, activates on hyperpolarization), and tau_q = 80 ms (fixed, slow enough not to cause bursting). Add I_h = gbar_h * q * (V - E_h) to both tau_V_inv and V_inf. This directly corrects resting potential mean/std and will improve skewness and kurtosis of the voltage distribution."
+    }
+  ]
+}

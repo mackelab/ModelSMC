@@ -1,0 +1,5 @@
+metric_to_optimize: mse
+compute_parameter_estimate: false
+optimization_direction: min
+termination_val: 1e-5
+plotting: True

@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, A-type K⁺ current (IA), and injected current
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation → spike generation
+- **n** (K⁺ gate): delayed-rectifier activation → repolarization
+- **b** (IA inactivation gate, slot X1): slow inactivation of fast K⁺ current; gbar_A=params[6], V_half_inact_A via param_j=−params[9]; instantaneous activation a_inf(V) shapes inter-spike trajectory without cumulative adaptation
+- E_K corrected to −90 mV (physiological intact neuron); slot X2 unused per parsimony; no adaptation, no burst mechanism

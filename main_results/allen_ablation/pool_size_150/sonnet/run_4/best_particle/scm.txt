@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current, injected current, and noise
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation, fast kinetics
+- **n** (K⁺ DR gate): voltage-dependent activation, intermediate kinetics
+- **p** (M-current gate): slow non-inactivating K⁺ activation; half-activation at `param_i`, max time constant `−param_j`
+- **Assumptions**: single-compartment, tonic spiking regime; M-current provides adaptation without bursting

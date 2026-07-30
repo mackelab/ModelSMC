@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Spike count remains the dominant failure (MSE=5.6), indicating the A-type K+ current with cubic activation (a^3) still excessively suppresses repetitive firing. Simultaneously, resting potential standard deviation is severely miscaptured (MSE=2.66) while the mean is nearly perfect (MSE=0.0003), pointing to missing subthreshold conductance dynamics that regulate membrane noise/variability without shifting the DC resting level.",
+  "issues": [
+    {
+      "description": "The IA activation gating uses a^3 exponent, creating an overly steep and strong activation profile near spike threshold. This cubic nonlinearity means even moderate gbar_A values can produce large transient outward currents that delay or block subsequent spikes, perpetuating the spike count error seen across all three prior iterations (MSE still 5.6). Additionally, V_half_inact_A = -65 mV means b_inf \u2248 0.5 at rest rather than near 1.0, so IA is only half-available and the inference may compensate with large gbar_A values that then over-suppress firing. The slow inactivation tau (10\u2013300 ms) combined with the cubic gating can create prolonged suppression across multiple ISIs.",
+      "severity": "critical",
+      "location": "IA gating: `gbar_A * (a_ch[:, i-1] ** 3) * b_ch[:, i-1]` and `V_half_inact_A = -65.0`",
+      "suggestion": "Change IA gating from a^3*b to a^1*b (linear in activation, standard for Huguenard-style IA models): replace all `a_ch[:, i-1] ** 3` with `a_ch[:, i-1]` throughout the tau_V_inv and V_inf computations. Also shift `V_half_inact_A` from -65.0 mV to -75.0 mV so b_inf \u2248 0.88 at rest (more complete recovery), ensuring IA is genuinely off between spikes and only transiently activates during the rising phase. This directly reduces tonic suppression of firing while preserving the ISI-shaping function."
+    },
+    {
+      "description": "The resting potential standard deviation has MSE=2.66 while the mean is near-perfect (MSE=0.0003). This dissociation \u2014 correct mean but wrong variance at rest \u2014 is a strong signature of a missing slow subthreshold conductance that modulates membrane fluctuation amplitude without shifting the DC level. The currently unused X2 slot (params[:,7]) offers exactly the right avenue: a hyperpolarization-activated cation current (Ih, HCN channels) activates below -60 mV, provides a depolarizing inward current that counteracts noise-driven hyperpolarizations, and thereby sets the standard deviation of subthreshold voltage without meaningfully altering the mean resting potential. Ih is fully consistent with regular tonic spiking (no bursting). The variance (MSE=2.44) and skewness (MSE=1.52) errors during stimulation are likely downstream consequences of the same missing subthreshold shaping.",
+      "severity": "major",
+      "location": "Currently unused slot: `params[:,7]` (reserved but not implemented)",
+      "suggestion": "Implement Ih using the X2 slot: set `gbar_h = params[:,7].float()` as an inferred conductance (range [1e-4, 5] mS/cm2), with fixed physiological parameters: `E_h = -30.0` mV (mixed-cation reversal), `V_half_h = -75.0` mV, `slope_h = 5.5` mV, `tau_h = 80.0` ms (slow activation). Steady state: `h_inf = 1/(1+exp((V - V_half_h)/slope_h))` (activates upon hyperpolarization). Add `+ gbar_h * h_gate` to tau_V_inv and `+ gbar_h * h_gate * E_h` to V_inf numerator, with its own exponential gate update. This directly targets the resting std error by adding voltage-dependent damping of subthreshold fluctuations."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The tightened parameter bounds (beta\u2208[0.05,0.80], gamma\u2208[0.02,0.25]) introduced this iteration caused a major regression from NLE=-349 to NLE=-455. The forward() clipping is too restrictive, preventing SBI from evaluating the likelihood at parameter values outside the tightened bounds. When SBI proposes parameters in formerly-valid regions (e.g., beta>0.80 or gamma<0.05), they all collapse to the same boundary value, corrupting the likelihood surface and producing a degenerate posterior. The wider bounds [0.01,1.50]x[0.01,0.50] must be restored.",
+  "issues": [
+    {
+      "description": "Tightened parameter bounds (beta\u2208[0.05,0.80], gamma\u2208[0.02,0.25]) caused a large NLE regression from -349 to -455. The np.clip() in forward() maps an entire region of SBI-proposed parameters to the same boundary values, collapsing the likelihood gradient and causing SBI to assign incorrect posterior mass. The true data-generating parameters may lie outside the tightened range, or the restricted prior volume prevents SBI from correctly estimating the marginal likelihood even when they don't.",
+      "severity": "critical",
+      "location": "forward() \u2014 lines: beta = float(np.clip(parameters[0], 0.05, 0.80)) and gamma = float(np.clip(parameters[1], 0.02, 0.25))",
+      "suggestion": "Revert to the previously validated BEST bounds: beta = float(np.clip(parameters[0], 0.01, 1.50)) and gamma = float(np.clip(parameters[1], 0.01, 0.50)). These achieved NLE=-349 and should be restored exactly. Also revert default self.parameters and docstring bounds accordingly. The prior volume reduction hypothesis was empirically falsified by this result."
+    },
+    {
+      "description": "The set_parameters / get_parameters pathway does not enforce any bounds, so parameters passed to forward() by SBI may still reach the clip boundary and degenerate. This is a secondary concern but contributes to the likelihood surface distortion when combined with the overly-tight clip bounds.",
+      "severity": "minor",
+      "location": "set_parameters() and forward() parameter unpacking",
+      "suggestion": "After restoring wider clip bounds, consider removing the hard clip entirely and instead using a soft constraint (e.g., softplus or abs) to guarantee positivity, OR keep clip with wide bounds [0.01,1.50]x[0.01,0.50] so SBI never hits the boundary under normal posterior sampling. Document bounds only in the prior specification passed to SBI, not in the simulator forward pass."
+    }
+  ]
+}

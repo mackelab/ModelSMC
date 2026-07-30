@@ -1,0 +1,2 @@
+neg_avg_log_marginal_NLE,neg_log_marginal_NLE,timeout_evidence_estimation,mse,wasserstein_distance,mmd_distance,neg_avg_log_likelihood_NLE,neg_log_likelihood_NLE
+-552.5653686523438,-55256.5390625,False,741.8350830078125,0.9838718444583037,0.010037166612088502,-527.2722778320312,-52727.2265625

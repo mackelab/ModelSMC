@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Critical sign error in tau_max_M extraction (line: `tau_max_M = torch.clamp(-params[:, 9].float(), min=1.0)`): since inference draws params[:,9] from a positive prior range [1e-4, 3000], negating it always yields a negative number, which the clamp then forces to exactly 1.0 ms for every sample. The M-current therefore has a fixed, hard-coded time constant of 1 ms instead of the intended 50\u2013500 ms slow adaptation range, causing it to behave like a second fast K\u207a channel rather than a slowly-activating M-type conductance. This destroys the physiological rationale and explains the persistently poor NLE.",
+  "issues": [
+    {
+      "description": "tau_max_M is always clamped to 1.0 ms due to a sign error. The comment states params[:,9] is positive [1e-4,3000] and should be negated to recover a positive time constant, but negating a positive number gives a negative number, which `clamp(min=1.0)` raises to exactly 1.0 ms. No inference sample can ever produce a slow M-current (50\u2013500 ms), making the channel functionally indistinguishable from a fast K\u207a conductance and invalidating all spike-frequency adaptation properties.",
+      "severity": "critical",
+      "location": "tau_max_M = torch.clamp(-params[:, 9].float(), min=1.0)",
+      "suggestion": "Remove the negation: change to `tau_max_M = torch.clamp(params[:, 9].float(), min=1.0)`. The inference engine will then explore the full [1, 3000] ms range and find physiologically appropriate slow values (~50\u2013500 ms). If the parameter encoding requires a sign flip, use `torch.abs(params[:, 9].float())` instead to guarantee positivity without collapsing all values to 1.0 ms."
+    },
+    {
+      "description": "Because tau_max_M is stuck at 1.0 ms, the M-gate p reaches its steady-state p_inf essentially instantaneously at every time step (exp(-dt/1.0) \u2248 0 for dt~0.025 ms), making p \u2248 p_inf(V) at all times. The M-current then provides only an instantaneous sigmoid conductance, adding no temporal dynamics, no spike-frequency adaptation, and no correction to variance or skewness of the voltage during stimulation\u2014the very statistics the channel was introduced to fix. All summary statistics related to the stimulation period (mean V, variance, skewness, kurtosis, spike count) will be poorly matched.",
+      "severity": "major",
+      "location": "Simulation loop: `p[:, i] = p_ss + (p_prev - p_ss) * Exp(-tstep / tau_p_val)`",
+      "suggestion": "After fixing the tau_max_M sign error above, verify that sampled tau_max_M values produce realistic slow dynamics by checking that `Exp(-tstep / tau_p_val)` is meaningfully less than 1 (i.e., tau_p_val >> dt). Additionally, consider tightening the tau_max_M prior or adding a soft lower bound of ~10 ms in the kinetics to prevent the inference from revisiting the degenerate fast-channel regime."
+    }
+  ]
+}

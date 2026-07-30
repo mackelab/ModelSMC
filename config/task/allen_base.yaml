@@ -1,0 +1,11 @@
+num_obs_train: 0
+num_obs_valid: 10
+metric_to_optimize: mse
+compute_parameter_estimate: false
+optimization_direction: min
+termination_val: null
+plotting: True
+learnable_summary_statistics: false
+n_xcorr: 0
+n_mom: 4
+n_summary: 7

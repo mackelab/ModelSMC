@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The V_half_NaP shift to -55.0 mV confirmed beneficial (NLE 23.7\u219222.8), the largest single-iteration improvement in recent history. Despite this progress, the X2 parameter slot (params[:,9]) remains completely unused. All 18 prior X2 *tunable* attempts regressed, but no fixed-conductance X2 channel has been systematically explored. The residual NLE=22.8 likely reflects remaining discrepancies in spike-frequency regularity, inter-spike interval distribution, and higher-order voltage statistics (skewness, kurtosis), which a well-chosen fixed X2 channel could address.",
+  "issues": [
+    {
+      "description": "The X2 slot (params[:,9]) is entirely unused. All 18 prior tunable X2 failures stem from parameter degeneracy and over-fitting, not from the channel type itself. A *fixed-conductance* A-type K+ transient current (IA, Kv4) has not been attempted. IA provides transient outward current that delays the first spike and regularizes tonic firing ISIs \u2014 precisely the tonic spiking regime described in the data. Proposed fixed parameters: g_IA = 0.2 mS/cm\u00b2, V_half_a = -50 mV, k_a = 20 mV (fast activation), V_half_b = -80 mV, k_b = -6 mV (inactivation, tau_b ~ 15 ms), E_K = -85 mV. These are literature-standard values (Connor & Stevens 1971) that will not introduce burst-generating dynamics. The fixed-parameter constraint avoids the degeneracy failures seen in tunable X2 attempts.",
+      "severity": "major",
+      "location": "forward() \u2014 X2 channel slot; params[:,9] currently unused",
+      "suggestion": "Implement fixed-parameter IA: add state variable `b` (inactivation) initialized to Boltzmann steady-state at V_init. In the time loop compute: a_inf = sigmoid((V - (-50)) / 20), b_inf = sigmoid(-(V - (-80)) / 6), tau_b = 15 ms (fixed), I_A = g_IA * a_inf^4 * b * (V - E_K). Update b with exponential Euler: b[:,i] = b_inf + (b[:,i-1] - b_inf) * exp(-dt/tau_b). Add g_IA*a_inf^4*b to tau_V_inv and g_IA*a_inf^4*b*E_K to V_inf numerator. Start with g_IA = 0.2 mS/cm\u00b2 and test 0.1/0.3/0.5 if first attempt regresses."
+    },
+    {
+      "description": "V_half_NaP=-55.0 mV improved NLE from 23.7 to 22.8, confirming the beneficial direction. The exploration of this scalar has not reached its optimum: the improvement trend from -57\u2192-55 (+2 mV gave -0.9 NLE) suggests further depolarizing shifts may continue to reduce resting NaP bias. However, the next step should be smaller (1 mV) to avoid overshooting, and should be tested only after the X2 channel result is known, since NaP and IA interact at subthreshold voltages.",
+      "severity": "suggestion",
+      "location": "V_half_NaP scalar \u2014 currently hardcoded at -55.0 mV",
+      "suggestion": "After resolving the X2/IA question, trial V_half_NaP = -53.0 mV (2 mV step in the confirmed improving direction). At V=-65 mV with k_NaP=5 mV: m_NaP_inf drops from ~0.12 (current) to ~0.08 (-33%), further reducing tonic resting depolarization. If NLE worsens versus -55.0, revert and try -54.0 mV as the intermediate. Keep V_half_NaP as a locked scalar (not tunable) to avoid Vt co-linearity regression."
+    }
+  ]
+}

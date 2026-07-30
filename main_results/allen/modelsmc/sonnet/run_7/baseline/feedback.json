@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) have their conductance parameters extracted (gbar_X1, gbar_X2, param_i, param_j) but are completely unused \u2014 no kinetics functions, no state variables, no initialization, and no current contributions are implemented in the simulation loop. The model is therefore running as a plain 3-channel HH model, making the inferred gbar_X1/X2/param_i/param_j parameters meaningless and explaining the high NLE (~25.4). For regular tonic spiking, an M-type slow non-inactivating K\u207a current (single gating variable `w`) is the most parsimonious addition to improve voltage distribution statistics.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, param_j are extracted from `params` but never referenced in any kinetics function, state variable, or current term. The simulation is identical to a standard 3-channel HH model regardless of what values those parameters take, so inference cannot improve the fit.",
+      "severity": "critical",
+      "location": "All four '===== BEGIN EDITABLE SECTION =====' blocks in the simulation loop (kinetics, state variables, initialization, update, tau_V_inv, V_inf)",
+      "suggestion": "Implement an M-type slow K\u207a current using gbar_X1 and a single gating variable `w`. Add kinetics: `w_inf = lambda x: 1.0/(1.0+Exp(-(x - param_i)/10.0))` and `tau_w_val = lambda x: torch.clamp(torch.abs(param_j), min=10.0)` (param_i acts as the half-activation voltage ~-35 mV after negation; param_j gives the slow time constant). Allocate `w` tensor, initialize `w[:,0] = w_inf(V[:,0])`, update `w[:,i] = w_inf(...) + (w[:,i-1]-w_inf(...))*Exp(-tstep/tau_w_val(...))`, and add `gbar_X1 * w[:,i-1]` to `tau_V_inv` and `gbar_X1 * w[:,i-1] * E_K` to the numerator of `V_inf`. Leave X2 unimplemented unless metrics remain poor."
+    },
+    {
+      "description": "The voltage steady-state formula `V_inf` divides the entire numerator (including input_current and noise) by `tau_V_inv * C`, but input_current and the noise term should be divided only by `C` (not additionally by `tau_V_inv`). This causes the injected current to be scaled incorrectly by the effective membrane conductance, distorting spike count, mean voltage during stimulation, and all higher-order voltage statistics.",
+      "severity": "major",
+      "location": "V_inf computation block, lines: `+ input_current[:,i-1]` and `+ nois_fact * torch.randn(...)` inside the division by `(tau_V_inv * C)`",
+      "suggestion": "Restructure V_inf so that only the conductance-weighted reversal-potential terms are divided by `tau_V_inv * C`, while `input_current` and noise are divided by `C` alone: `V_inf = (g_weighted_sum + input_current[:,i-1]/C + noise/C) / tau_V_inv` where `g_weighted_sum = ((m\u00b3*gbar_Na*h*E_Na + n\u2074*gbar_K*E_K + g_leak*E_leak + ...)) / C`. Equivalently: `V_inf = (Iion_numerator + input_current[:,i-1] + noise) / (tau_V_inv * C)` only if input_current is already in uA/cm\u00b2 and the noise term is already scaled by C \u2014 verify units and fix accordingly."
+    }
+  ]
+}

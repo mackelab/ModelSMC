@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional ion channel slots (X1, X2) are fully parameterized but the editable sections remain completely empty. Parameters gbar_X1, gbar_X2, param_i, and param_j are extracted but never used in any voltage dynamics computation, meaning they have zero effect on the simulation. This is the primary cause of the high NLE scores.",
+  "issues": [
+    {
+      "description": "All four editable sections inside the simulation loop are empty. gbar_X1, gbar_X2, param_i, and param_j are computed but never contribute to tau_V_inv, V_inf, or any state variable update. The model is identical to a plain 3-channel HH model regardless of inferred parameters, preventing it from matching experimental tonic-spiking statistics such as resting potential, spike count, and voltage distribution moments.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks, particularly inside the simulation loop (tau_V_inv and V_inf expressions) and the kinetics/state-variable sections",
+      "suggestion": "Add a slow potassium M-current (IKM) using gbar_X1 as conductance and param_i as the half-activation voltage. Implement a single gating variable w: `def w_inf(x): return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))` and a fixed slow time constant `tau_w = 100.0 ms`. In the loop compute `w[:,i] = w_inf(V[:,i-1]) + (w[:,i-1] - w_inf(V[:,i-1])) * Exp(-tstep / tau_w)`. Then add `+ gbar_X1 * w[:,i-1]` to tau_V_inv and `+ gbar_X1 * w[:,i-1] * E_K` to the numerator of V_inf. This M-current modulates spike-frequency and resting potential without inducing bursting."
+    },
+    {
+      "description": "param_j is extracted but has no corresponding channel mechanism. Its range (-3000 to ~0 after negation) is suitable for encoding a slow time constant or a conductance scaling, yet it is unused, wasting an inferred degree of freedom that could improve fits to voltage variance and kurtosis.",
+      "severity": "major",
+      "location": "Parameter extraction block (param_j = -params[:, 9]) and all editable loop sections",
+      "suggestion": "Use param_j to parameterize the M-current time constant: `tau_w = torch.clamp(-param_j / 10.0, min=10.0, max=500.0)` (since param_j is negative, -param_j is positive). This lets the inference engine adjust the kinetic speed of the M-current to better match the experimental inter-spike-interval statistics and voltage distribution shape, without adding a second full channel."
+    }
+  ]
+}

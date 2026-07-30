@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only `...` and returns an unchanged copy of the state. No SIR dynamics are computed at all, which is why the likelihood metrics are astronomically bad (neg_avg_log_marginal_NLE ~2e+31). The entire simulation logic must be written inside `forward`.",
+  "issues": [
+    {
+      "description": "The `forward` method body is a stub (`...`) and performs no computation. It simply copies and returns the current state unchanged, producing a degenerate trajectory where S, I, R never evolve. This makes the simulator completely useless for SBI inference.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward (lines after the docstring)",
+      "suggestion": "Implement discrete-time stochastic SIR dynamics using binomial draws. Let parameters[0]=beta (transmission rate) and parameters[1]=gamma (recovery rate). Compute N = S + I + R, then sample new_infections ~ Binomial(S, 1 - exp(-beta * I / N)) and new_recoveries ~ Binomial(I, 1 - exp(-gamma)) using rng.binomial. Update: S_new = S - new_infections, I_new = I + new_infections - new_recoveries, R_new = R + new_recoveries, all clipped to [0, N]. Return {'S': int(S_new), 'I': int(I_new), 'R': int(R_new)}. Using the exponential formulation (1 - exp(-rate)) ensures numerical stability and correct Poisson-process interpretation for discrete time steps."
+    },
+    {
+      "description": "The class `__init__` never initialises `self.parameters`, so calling `get_parameters()` before `set_parameters()` raises an AttributeError. This makes the simulator fragile during SBI parameter sweeps.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and get_parameters",
+      "suggestion": "Add a default initialisation in `__init__`, e.g. `self.parameters = np.array([0.3, 0.05])` (reasonable COVID beta and gamma), so the simulator is usable immediately after construction without requiring an explicit `set_parameters` call first."
+    }
+  ]
+}

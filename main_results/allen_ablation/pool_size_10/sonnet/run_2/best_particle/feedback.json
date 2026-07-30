@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator wastes the second X1 slot parameter (params[:, 7] is never used) while the M-current uses three tunable parameters spread across both X1 and X2 slots (indices 6, 8, 9). This means one free parameter is discarded and the M-current sigmoid slope is fixed at an arbitrary 10 mV rather than being inferred, severely limiting the model's ability to match the data (neg_avg_log_marginal_NLE = 24.7). The fix is to use params[:, 7] as a learnable slope parameter for the M-current sigmoid activation.",
+  "issues": [
+    {
+      "description": "params[:, 7] (the second X1 slot parameter) is declared available but never extracted or used anywhere in the forward pass. The M-current uses params[:, 6] (X1 param 1) for gbar_M, then jumps to params[:, 8] and params[:, 9] (X2 params) for v_half_M and tau_p. This wastes a free inferred parameter and leaves the M-current sigmoid slope fixed at an arbitrary constant (10 mV), preventing the optimizer from adapting the M-gate voltage sensitivity to match the actual neuron.",
+      "severity": "major",
+      "location": "Parameter extraction block (~line 50-60) and p_inf_fn definition (~line 105)",
+      "suggestion": "Extract `slope_M = params[:, 7].float()` and use it in the M-gate sigmoid: `p_inf_fn = 1.0 / (1.0 + Exp(-(x - Vt - v_half_M) / torch.clamp(slope_M, min=1.0)))`. Clamp slope_M to a minimum of ~1 mV to avoid numerical instability. This utilises all four inferred channel parameters (gbar_M at idx 6, slope_M at idx 7, v_half_M at idx 8, tau_p at idx 9) and lets the inference engine tune how sharply the M-current switches on relative to the spike threshold."
+    },
+    {
+      "description": "The M-current `tau_p_safe` clamp (`torch.clamp(tau_p, min=1e-3)`) is computed once outside the simulation loop as a (batch_size,) tensor, but `tau_p_safe` is correctly broadcast inside the loop. However, if the inferred tau_p values are very large (thousands of ms), the M-gate barely moves within a typical simulation window, making it effectively a constant leak and providing no adaptive benefit for ISI regularisation. There is no upper clamp, so the inference can get stuck in a region where the M-current is too slow to influence spiking statistics.",
+      "severity": "minor",
+      "location": "`tau_p_safe = torch.clamp(tau_p, min=1e-3)` (~line 110), and M-gate update inside loop",
+      "suggestion": "Add an upper clamp consistent with the physiological range noted in the comments: `tau_p_safe = torch.clamp(tau_p, min=1.0, max=3000.0)`. Also consider initialising the inference prior for tau_p in the range [20, 300] ms so the optimiser starts in a region where the M-gate meaningfully modulates inter-spike intervals, consistent with the description of Kv7/KCNQ channels."
+    }
+  ]
+}

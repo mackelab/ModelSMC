@@ -1,0 +1,5 @@
+- **V**: membrane voltage ← I_Na(m,h), I_K(n), I_leak, I_KM(p), I_h(r), I_inj, noise
+- **m, h**: Na⁺ activation/inactivation ← V, Vt (fast HH kinetics)
+- **n**: delayed-rectifier K⁺ activation ← V, Vt
+- **p**: M-current (slow K⁺) gate ← V, V_half_p (param_i), tau_max_p (param_j); voltage-independent tau for stability
+- **r**: I_h (HCN) gate ← V; fixed half-activation −80 mV, fixed tau 200 ms; corrects resting potential distribution

@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation, fast kinetics
+- **n** (K⁺ gate): voltage-dependent delayed-rectifier activation
+- **w** (M-current gate): slow non-inactivating K⁺ activation; half-voltage from `param_i`, bell-shaped time constant
+- **Assumptions**: single-compartment, tonic spiking, no burst-generating mechanisms; M-current added to regulate ISI and voltage distribution without producing bursting

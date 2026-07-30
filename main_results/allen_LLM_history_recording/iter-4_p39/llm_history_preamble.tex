@@ -1,0 +1,64 @@
+%% Font encoding: T1 makes \textquotedbl and other symbols available
+\usepackage[T1]{fontenc}
+%% upquote renders straight quotes in lstlisting (avoids \textquotedbl in OT1)
+\usepackage{upquote}
+
+%% tcolorbox with listings support
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable, listings}
+
+%% Code listings
+\usepackage{listings}
+\usepackage{xcolor}
+
+%% -- Colour palette ----------------------------------------------------------
+\definecolor{SystemBg}      {HTML}{CDDAF5}
+\definecolor{SystemFrame}   {HTML}{7799e4}
+
+\definecolor{UserBg}        {HTML}{FFF3CD}
+\definecolor{UserFrame}     {HTML}{ffdb66}
+
+\definecolor{AssistantBg}   {HTML}{D4EDDA}
+\definecolor{AssistantFrame}{HTML}{8ccf9c}
+
+\definecolor{OutputBg}      {HTML}{FAC898}
+\definecolor{OutputFrame}   {HTML}{f69337}
+
+\definecolor{codebg}        {RGB}{248, 248, 248}
+\definecolor{codeframe}     {RGB}{180, 180, 180}
+
+\definecolor{kwcolor}       {RGB}{  0,   0, 195}
+\definecolor{strcolor}      {RGB}{175,   0,   0}
+\definecolor{cmcolor}       {RGB}{ 90, 120,  90}
+
+%% -- Python listing style ----------------------------------------------------
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\scriptsize\ttfamily,
+  keywordstyle=\color{kwcolor}\bfseries,
+  stringstyle=\color{strcolor},
+  commentstyle=\color{cmcolor}\itshape,
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=7pt,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{codeframe},
+  breaklines=true,
+  breakatwhitespace=false,
+  breakautoindent=true,
+  breakindent=0.5em,
+  postbreak=\mbox{\textcolor{gray}{$\hookrightarrow$}\space},
+  keepspaces=true,
+  showspaces=false,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=16pt,
+  numbersep=8pt,
+  xrightmargin=4pt,
+  morekeywords={self,True,False,None,as,with,yield,lambda,assert,
+                del,except,finally,global,nonlocal,pass,raise,
+                return,try,while,async,await},
+}
+\lstset{style=pythonstyle}

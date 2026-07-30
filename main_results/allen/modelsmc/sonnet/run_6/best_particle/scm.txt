@@ -1,0 +1,5 @@
+- **Variables**: V (membrane potential), m/h (Na⁺ gates), n (delayed-rectifier K⁺ gate), p (M-type K⁺ slow adaptation gate)
+- **Causal structure**: I_inj → V; V → {m, h, n, p} via voltage-dependent kinetics; {m, h, n, p} → V via ohmic conductance currents
+- **X1 slot**: gbar_M (M-type K⁺); param_i sets half-activation shift above Vt (mV); param_j sets slow time constant (ms)
+- **X2 slot**: unused — tonic regular spiking explained parsimoniously by single adaptation channel
+- **Core assumptions**: E_K = −90 mV (physiological cortical value); M-current non-inactivating; no burst-promoting mechanisms

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The dominant failure is extreme voltage skewness error (MSE=64.8, dim 6), combined with elevated SD of resting potential (MSE=4.03, dim 3) and spike count error (MSE=2.29, dim 1). The base HH model lacks a slow voltage-gated K+ current (M-current, IKm) that shapes the after-hyperpolarization depth and inter-spike interval dynamics during tonic spiking. Without IKm, the model cannot reproduce the correct asymmetry of the voltage distribution: real tonic-spiking neurons spend more time in deep hyperpolarized troughs between spikes, creating a characteristic negative skew that the classic HH model misses. The M-current (single gating variable p, no inactivation, slow ~100\u2013400 ms time constant) is the minimal addition consistent with regular tonic firing.",
+  "issues": [
+    {
+      "description": "Missing slow M-type K+ current (IKm). The skewness MSE of 64.8 is the overwhelmingly dominant error, indicating the voltage distribution asymmetry is fundamentally wrong. An M-current with one activation gate p (no inactivation) adds a slow outward K+ current that deepens the after-hyperpolarization between spikes, creating the correct negatively-skewed voltage distribution for tonic spiking. It also naturally reduces spike count slightly (spike MSE=2.29) and increases resting potential variance (SD MSE=4.03) by adding slow subthreshold fluctuations.",
+      "severity": "critical",
+      "location": "All EDITABLE SECTIONs in the simulation loop and kinetics block; use gbar_X1 as conductance, param_i as half-activation voltage shift (already negated, fits range ~[-35,-20] mV), and -param_j as the slow time constant (range [100,500] ms by choosing param_j in [100,500]).",
+      "suggestion": "Add M-current kinetics and state variable p. In the kinetics block: def p_inf(x): return 1.0/(1.0+Exp(-(x - param_i)/10.0)) (param_i is already negative, e.g. ~-35 mV). def tau_p_val(x): return -param_j (positive, slow ~100-400 ms). Initialize p[:,0]=p_inf(V[:,0]). In the loop compute p[:,i] with Euler/exact update like n,m,h. Add gbar_X1*p[:,i-1]*(V[:,i-1]-E_K) contribution to tau_V_inv (add gbar_X1*p[:,i-1]) and to V_inf numerator (add gbar_X1*p[:,i-1]*E_K). This single-gate slow K+ channel is the minimal fix for the skewness and is consistent with regular tonic spiking (no bursting)."
+    },
+    {
+      "description": "SD of resting potential (MSE=4.03, dim 3) suggests either the noise level or slow subthreshold channel kinetics are mismatched. The M-current addition will partially fix this via slow subthreshold gating fluctuations, but the noise scaling (nois_fact) may also need recalibration. Currently nois_fact_obs is hard-coded to 0.0, removing all observation noise which may under-represent resting variability.",
+      "severity": "minor",
+      "location": "nois_fact_obs = 0.0 (hardcoded near top of forward()); also nois_fact parameter (params[:,5]) governing process noise.",
+      "suggestion": "Allow nois_fact_obs to take a small positive value (e.g., set nois_fact_obs = 0.5 or make it a fixed constant ~0.1-1.0 mV) so that observation noise contributes to resting potential SD. The primary fix is the M-current (Issue 1), but freeing or slightly increasing nois_fact_obs will help the SD of resting potential metric independently."
+    }
+  ]
+}

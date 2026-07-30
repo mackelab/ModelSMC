@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns `next_state = state.copy()` without any SIR dynamics. This means the simulator predicts no change in state at every step, producing catastrophically wrong trajectories (neg_avg_log_marginal_NLE ~1.18e+25). The entire SIR transition logic is missing.",
+  "issues": [
+    {
+      "description": "The forward function contains no SIR model dynamics. It simply copies the current state and returns it unchanged. The standard discrete-time SIR model must be implemented: N = S + I + R, new_infections = \u03b2 * S * I / N (binomial draw), new_recoveries = \u03b3 * I (binomial draw), then S_next = S - new_infections, I_next = I + new_infections - new_recoveries, R_next = R + new_recoveries. The two parameters in `parameters` should be \u03b2 (transmission rate, index 0) and \u03b3 (recovery rate, index 1). Stochastic transitions via `rng.binomial` are appropriate to model realistic variability.",
+      "severity": "critical",
+      "location": "forward() method, lines with `...` and `next_state = state.copy()`",
+      "suggestion": "Replace the placeholder with:\n```python\nbeta, gamma = parameters[0], parameters[1]\nS, I, R = int(state['S']), int(state['I']), int(state['R'])\nN = S + I + R\nif N == 0:\n    return state.copy()\n# Stochastic SIR transitions\np_infection = 1.0 - np.exp(-beta * I / N)  # per-susceptible infection probability\nnew_infections = rng.binomial(S, np.clip(p_infection, 0, 1))\np_recovery = 1.0 - np.exp(-gamma)  # per-infected recovery probability\nnew_recoveries = rng.binomial(I, np.clip(p_recovery, 0, 1))\nnext_state = {\n    'S': S - new_infections,\n    'I': I + new_infections - new_recoveries,\n    'R': R + new_recoveries\n}\nreturn next_state\n```"
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. This may cause failures during inference pipelines that call `step` before explicitly setting parameters.",
+      "severity": "major",
+      "location": "__init__() method",
+      "suggestion": "Initialize default parameters in `__init__` with epidemiologically plausible values, e.g.:\n```python\nself.parameters = np.array([0.3, 0.1])  # beta=0.3, gamma=0.1 as defaults\n```\nThis ensures the simulator is functional out of the box and provides a reasonable starting point for SBI optimization."
+    }
+  ]
+}

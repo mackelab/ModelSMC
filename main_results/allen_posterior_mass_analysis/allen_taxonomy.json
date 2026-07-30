@@ -1,0 +1,161 @@
+{
+  "taxonomy": [
+    {
+      "family_id": "I_M",
+      "subtype_id": "I_M_fixed_tau",
+      "name": "M-type K+ current with fixed (voltage-independent) time constant",
+      "description": "Slow non-inactivating M-type K+ current (Kv7/KCNQ) with a single activation gate (p or w), Boltzmann steady-state p_inf/w_inf, and a voltage-independent fixed scalar time constant (tau drawn directly from a parameter, precomputed before the simulation loop). Reversal typically E_K = -107 mV (some variants use -77 or -90 mV). Provides spike-frequency adaptation.",
+      "split_criterion": "tau_type=fixed_scalar",
+      "is_multi": false,
+      "example_phrases": [
+        "fixed scalar tau_p from params",
+        "voltage-independent time constant",
+        "tau_M = clamp(params[:,9], min=1.0)",
+        "precomputed decay factor",
+        "constant tau avoids cosh bell-shape"
+      ]
+    },
+    {
+      "family_id": "I_M",
+      "subtype_id": "I_M_voltage_dep_tau",
+      "name": "M-type K+ current with voltage-dependent (bell-shaped) time constant",
+      "description": "Slow non-inactivating M-type K+ current (Kv7/KCNQ) with a single activation gate (p or w), Boltzmann or alpha/beta steady-state, and a bell-shaped voltage-dependent time constant (Wang 1998 form, cosh form, or symmetric exponential alpha/beta). Reversal typically E_K = -107 mV. Provides genuine slow spike-frequency adaptation with voltage-dependent kinetics.",
+      "split_criterion": "tau_type=voltage_dependent",
+      "is_multi": false,
+      "example_phrases": [
+        "bell-shaped tau_p",
+        "voltage-dependent tau via alpha/beta",
+        "tau_max/(3.3*exp(dv/20)+exp(-dv/20))",
+        "Wang 1998 formulation",
+        "cosh-like denominator",
+        "alpha_p = 3.3e-3*exp(0.05*v1)"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_NaP",
+      "subtype_id": "I_M_plus_I_NaP_fixed_tau",
+      "name": "M-type K+ current + Persistent Na+ current (fixed tau for I_M)",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (I_M/IKm, single gate p or w, fixed scalar tau) paired with a secondary persistent Na+ current (I_NaP) with instantaneous Boltzmann activation (no state variable ODE). I_NaP provides subthreshold depolarizing drive; I_M provides spike-frequency adaptation. Reversal E_K (various) and E_Na = +53 mV.",
+      "split_criterion": "tau_type=fixed_scalar AND secondary=I_NaP",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ current with fixed tau paired with INaP",
+        "instantaneous Boltzmann activation for NaP",
+        "tau_M fixed scalar, INaP no state variable",
+        "subthreshold depolarizing drive"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_NaP",
+      "subtype_id": "I_M_plus_I_NaP_voltage_dep_tau",
+      "name": "M-type K+ current + Persistent Na+ current (voltage-dependent tau for I_M)",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (I_M/IKm, single gate p or w, bell-shaped voltage-dependent tau) paired with a secondary persistent Na+ current (I_NaP) with instantaneous Boltzmann activation (no state variable ODE). I_NaP provides subthreshold depolarizing drive; I_M provides voltage-dependent slow adaptation.",
+      "split_criterion": "tau_type=voltage_dependent AND secondary=I_NaP",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ with bell-shaped tau paired with INaP",
+        "Wang 1998 tau_p plus instantaneous NaP",
+        "voltage-dependent tau_p, INaP no ODE",
+        "persistent Na+ instantaneous activation"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_h",
+      "subtype_id": "I_M_plus_I_h_fixed_tau",
+      "name": "M-type K+ current + HCN/Ih hyperpolarization-activated current (fixed tau for both)",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (I_M, single gate p or w, fixed scalar tau) paired with a secondary hyperpolarization-activated cation current (Ih/HCN, single gate r or q, inverted Boltzmann, fixed scalar tau). Reversal E_K (various) and E_h (mixed cation, ~-20 to -30 mV). E_K often corrected to -77 mV in these variants.",
+      "split_criterion": "tau_type=fixed_scalar AND secondary=I_h",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ with fixed tau paired with HCN/Ih",
+        "inverted Boltzmann r_inf activates on hyperpolarization",
+        "fixed tau_r for Ih",
+        "E_K corrected to -77 mV",
+        "mixed cation reversal E_h"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_h",
+      "subtype_id": "I_M_plus_I_h_voltage_dep_tau",
+      "name": "M-type K+ current + HCN/Ih hyperpolarization-activated current (voltage-dependent tau for I_M)",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (I_M, single gate p or w, bell-shaped voltage-dependent tau) paired with a secondary hyperpolarization-activated cation current (Ih/HCN, single gate q or r, inverted Boltzmann, fixed or voltage-dependent tau). Reversal E_K and E_h (mixed cation).",
+      "split_criterion": "tau_type=voltage_dependent AND secondary=I_h",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ with voltage-dependent tau paired with HCN/Ih",
+        "bell-shaped tau_p for IM, inverted Boltzmann for Ih",
+        "alpha/beta kinetics for Ih",
+        "slow tau ~500 ms at half-activation for Ih"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_A",
+      "subtype_id": "I_M_plus_I_A",
+      "name": "M-type K+ current + A-type transient K+ current",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (I_M/IKm, single gate p, voltage-dependent bell-shaped tau) paired with a secondary A-type transient K+ current (IA/Kv4) with instantaneous activation (a_inf, no ODE) and slow inactivation gate (b, fixed tau_b). Both channels use E_K = -107 mV. has_inactivation_gate=true for the pair due to IA inactivation gate b.",
+      "split_criterion": "has_inactivation_gate=true AND secondary=I_A",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ paired with A-type transient K+",
+        "instantaneous activation a_inf for IA",
+        "slow inactivation gate b with fixed tau_b",
+        "a^4*b or a_inf*b open probability",
+        "transient K+ current Kv4-like"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_Ks",
+      "subtype_id": "I_M_plus_I_Ks",
+      "name": "M-type K+ current + Slow AHP-type K+ current",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (IKm, single gate p, voltage-dependent tau via alpha/beta) paired with a secondary slow AHP-type K+ current (IKs, single gate q, voltage-dependent tau via alpha/beta with slower kinetics). Both channels use E_K = -107 mV and alpha/beta exponential rate functions.",
+      "split_criterion": "secondary=I_Ks (AHP-type K+)",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ paired with slow AHP K+ current",
+        "alpha_q/beta_q exponential rates for IKs",
+        "2.0e-3*exp(\u00b10.04*v1) for IKs",
+        "bell-shaped tau_q ~250 ms at half-activation"
+      ]
+    },
+    {
+      "family_id": "I_M_plus_I_bgK",
+      "subtype_id": "I_M_plus_I_bgK",
+      "name": "M-type K+ current + Background ohmic K+ leak conductance",
+      "description": "Two-channel combination: primary slow non-inactivating M-type K+ current (IKm, single gate p, voltage-dependent tau) paired with a secondary background ohmic K+ leak conductance (no gating variable, purely instantaneous). Both use E_K = -77 mV (corrected). The background K+ leak is not a gated channel but an additional ohmic term.",
+      "split_criterion": "secondary=background_ohmic_K_leak",
+      "is_multi": true,
+      "example_phrases": [
+        "M-type K+ paired with ohmic background K+ leak",
+        "no gating variable for background K+",
+        "gbar_bgK*(V-E_K) instantaneous",
+        "E_K changed to -77 mV"
+      ]
+    },
+    {
+      "family_id": "base_only",
+      "subtype_id": "base_only",
+      "name": "Base HH model only (no additional channels)",
+      "description": "No additional ionic currents beyond the three base HH channels (fast Na+, delayed-rectifier K+, ohmic leak). Included as a sentinel class for completeness.",
+      "split_criterion": "n_channels_added=0",
+      "is_multi": false,
+      "example_phrases": [
+        "no extra channels",
+        "base HH only"
+      ]
+    },
+    {
+      "family_id": "unknown",
+      "subtype_id": "unknown",
+      "name": "Unknown or unclassified channel combination",
+      "description": "Channel descriptions that do not fit any of the identified families, or whose channel family cannot be determined from the available information.",
+      "split_criterion": "channel_family=unknown or unrecognized",
+      "is_multi": false,
+      "example_phrases": [
+        "unrecognized channel type",
+        "ambiguous description"
+      ]
+    }
+  ],
+  "base_only_subtype_id": "base_only",
+  "unknown_subtype_id": "unknown"
+}

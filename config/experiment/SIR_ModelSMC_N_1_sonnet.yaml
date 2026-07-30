@@ -1,0 +1,53 @@
+# @package _global_
+name: SIR_ModelSMC_N_1_sonnet
+seed: ???
+
+logging:
+  level: "INFO"
+
+method:
+  max_iter: 150 # (1-alpha) * particle_pool_size * n_iter = 0.2 * 50 * 15 = 150
+  few_shot_examples: 3
+  max_num_itr_no_improvement: 150
+  alpha: 0.0
+  particle_pool_size: 1
+  ess_threshold: 0.5
+  temperature: 1.0
+  use_chain_of_thought: False
+
+  optimizer:
+    num_simulations: 1000 # Value from https://github.com/samholt/generative-simulations/blob/master/libs/SIR/env.py line 183
+    sampling_timeout: 300
+    train_sss: false
+    num_samples_posterior: 10000 # Value from https://github.com/samholt/generative-simulations/blob/master/libs/SIR/env.py line 184
+
+  evaluator:
+    evidence_estimation_mode: prior_samples
+    n_samples_evidence_estimation: 5000
+    sampling_timeout: 10 # per observation
+    bs_marginals: 5000
+
+task:
+  termination_val: null
+  optimization_direction: min
+  learnable_summary_statistics: false
+  metric_to_optimize: neg_log_marginal_NLE
+  compute_parameter_estimate: false
+
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      seed: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+
+defaults:
+  - override /partition: a100_single_long
+  - override /launcher: slurm
+  - override /task: SIR_level3
+  - override /method: smc_method
+  - override /method/evaluator: base
+  - override /method/optimizer: npe
+  - override /method/evaluator/likelihood_estimator: NLE
+  - override /llm: claude_sonnet46
+  - _self_

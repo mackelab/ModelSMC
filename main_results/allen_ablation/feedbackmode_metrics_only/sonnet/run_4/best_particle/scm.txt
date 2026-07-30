@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation of fast sodium current
+- **n** (K⁺ gate): voltage-dependent activation of delayed-rectifier potassium current
+- **p** (M-current gate): slow non-inactivating K⁺ activation, stabilizes tonic firing regularity
+- **Assumptions**: single-compartment, Hodgkin-Huxley kinetics; M-current adds adaptation without bursting

@@ -1,0 +1,5 @@
+- **Compartments**: S (susceptible), I (infected), R (recovered); N = S+I+R conserved throughout
+- **Parameters**: β = transmission rate (parameters[0]); γ = recovery rate (parameters[1])
+- **S→I flow**: deterministic Euler dS = −β·S·I/N per day, with small Poisson-scaled noise
+- **I→R flow**: deterministic Euler dI = β·S·I/N − γ·I per day; R enforced as N − S_new − I_new
+- **Assumptions**: homogeneous mixing, discrete daily steps, float-precision ODE base with light stochasticity at output only

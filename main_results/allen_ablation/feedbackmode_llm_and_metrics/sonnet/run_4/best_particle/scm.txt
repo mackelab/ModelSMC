@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, applied current, and noise
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation → spike upstroke/repolarization
+- **n** (K⁺ gate): delayed rectifier activation → spike repolarization and AHP
+- **p** (M-current gate): slow Boltzmann activation centered at `param_i`; time constant `-param_j`; suppresses excessive firing, regularizes inter-spike intervals without bursting
+- **Assumptions**: single-compartment, tonic spiking, no inactivation on M-current, fixed E_Na/E_K, batch-parallel Euler integration

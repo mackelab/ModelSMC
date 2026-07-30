@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator is missing a slow non-inactivating potassium channel (M-current, Kv7/KCNQ). All additional channel slots (X1, X2) are extracted but never used in the current dynamics. This causes: (1) incorrect spike count (mse_per_dim[0]=2.22) because there is no spike-frequency adaptation or rate-limiting slow K+ current, and (2) excessive subthreshold voltage variability (mse_per_dim[2]=3.16 for resting std) because without a slowly-activating stabilizing conductance the membrane is too sensitive to noise near rest. The elevated variance (1.34) and skewness (1.23) during stimulation also point to missing inter-spike interval regulation.",
+  "issues": [
+    {
+      "description": "No additional channel is implemented despite X1/X2 conductance parameters being extracted. The M-current (slow, non-inactivating K+ current) is the most parsimonious fix: it activates at subthreshold voltages, does not inactivate, reduces firing rate via adaptation, and damps subthreshold oscillations \u2014 directly addressing the high spike-count MSE and high resting-potential STD MSE.",
+      "severity": "critical",
+      "location": "All '# BEGIN EDITABLE SECTION' blocks in forward(). Specifically: kinetics definition block, state variable declaration, initialization, simulation loop (alpha/beta computation, tau_V_inv, V_inf, state update).",
+      "suggestion": "Add an M-current gating variable p with slow sigmoid kinetics. In the kinetics block add:\n  def p_inf(x): return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))\n  def tau_p(x): return torch.clamp(-param_j / (3.3 * (Exp((x - param_i) / 40.0) + Exp(-(x - param_i) / 20.0))), min=10.0, max=2000.0)\nDeclare state variable: p = torch.zeros((batch_size, time_steps), device=device)\nInitialize: p[:, 0] = p_inf(V[:, 0])\nIn the loop, compute p_inf and tau_p at V[:,i-1], then add to tau_V_inv: + gbar_X1 * p[:,i-1], and to V_inf numerator: + gbar_X1 * p[:,i-1] * E_K. Update state: p[:,i] = p_inf(V[:,i-1]) + (p[:,i-1] - p_inf(V[:,i-1])) * Exp(-tstep / tau_p(V[:,i-1])). This uses gbar_X1 (conductance), param_i (half-activation voltage, negated to negative mV), and param_j (time constant scaling, negated to negative large value matching slow M-current ~100\u2013500 ms range)."
+    },
+    {
+      "description": "The standard deviation of the resting potential (mse_per_dim[2]=3.16) is the single largest error dimension, indicating subthreshold membrane instability. With no slow stabilizing conductance, the noise term (nois_fact) perturbs the membrane without an effective restoring force, causing excessive voltage fluctuations at rest.",
+      "severity": "major",
+      "location": "tau_V_inv and V_inf computation inside the simulation loop.",
+      "suggestion": "Once the M-current gating variable p is added (see issue 1), its contribution gbar_X1 * p[:, i-1] in tau_V_inv will increase the effective membrane conductance at rest, shortening the membrane time constant and reducing sensitivity to noise. This directly reduces resting potential standard deviation. Ensure param_i is in a subthreshold range (e.g., ~-35 mV, which corresponds to params[:,8] ~ 35) so p is partially activated at rest and provides tonic stabilizing outward current."
+    }
+  ]
+}

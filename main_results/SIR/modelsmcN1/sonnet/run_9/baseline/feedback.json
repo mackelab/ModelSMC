@@ -1,0 +1,11 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder `...` and returns the unchanged state. This means the simulator produces no SIR dynamics whatsoever, which directly explains the catastrophically large negative log-likelihood scores (1.55e+33 / 1.55e+35). The two model parameters (beta, gamma) are never used.",
+  "issues": [
+    {
+      "description": "The `forward` method contains no SIR transition logic. It only copies and returns the current state unchanged, so every simulated trajectory is flat (S, I, R constant), which is completely inconsistent with any real epidemic trajectory and causes the optimizer to receive no useful gradient signal.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines containing `...` and `next_state = state.copy()`",
+      "suggestion": "Implement discrete-time stochastic SIR dynamics. Use `parameters[0]` as `beta` (transmission rate) and `parameters[1]` as `gamma` (recovery rate). Compute total population `N = S + I + R`. Draw new infections as `new_infections = rng.binomial(S, 1 - np.exp(-beta * I / N))` and new recoveries as `new_recoveries = rng.binomial(I, 1 - np.exp(-gamma))`. Then set `next_state['S'] = S - new_infections`, `next_state['I'] = I + new_infections - new_recoveries`, `next_state['R'] = R + new_recoveries`. Clamp all values to be non-negative integers to maintain physical validity."
+    }
+  ]
+}

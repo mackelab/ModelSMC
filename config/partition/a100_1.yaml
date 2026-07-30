@@ -1,0 +1,13 @@
+# @package _global_
+
+hydra:
+  mode: MULTIRUN
+  launcher:
+    timeout_min: 2000
+    partition: a100-galvani
+    gres: gpu:${hydra.launcher.gpus_per_task}
+    cpus_per_task: ${max:${min:${round:${mul:${method.particle_pool_size},${sub:1,${method.alpha}}}}, 5}, 1}
+    gpus_per_task: ${max:${min:${round:${mul:${method.particle_pool_size},${sub:1,${method.alpha}}}}, 5}, 1}
+    gpus_per_node: ${hydra.launcher.gpus_per_task}
+    mem_gb: 125
+    array_parallelism: 15

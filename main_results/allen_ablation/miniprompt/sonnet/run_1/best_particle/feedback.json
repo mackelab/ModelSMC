@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator leaves params[:, 7] (labeled 'gbar_X2 reserved') completely unused, meaning a second conductance channel is missing from the model. This unimplemented channel is the primary cause of high neg_log_marginal_NLE (257), as the simulator cannot reproduce the corresponding experimental dynamics regardless of parameter optimization.",
+  "issues": [
+    {
+      "description": "params[:, 7] is never extracted or used. A second ion channel \u2014 most likely an A-type transient potassium current (I_A) or a persistent sodium current (I_NaP) \u2014 is missing entirely. Because the parameter exists in the prior/posterior but has no effect on the simulated voltage, the likelihood surface is flat in that dimension and the model cannot fit recordings that depend on this channel.",
+      "severity": "critical",
+      "location": "Line: `# params[:, 7] unused (gbar_X2 reserved)` and the entire forward() simulation loop",
+      "suggestion": "Extract gbar_A = params[:, 7].float() and implement an A-type K+ current. A minimal two-gate (activation 'a', inactivation 'b') formulation with fixed kinetics works well: a_inf = 1/(1+exp(-(V+50)/20)), tau_a \u2248 1 ms; b_inf = 1/(1+exp((V+80)/6)), tau_b \u2248 5 ms; I_A = gbar_A * a^3 * b * (V - E_K). Add the conductance term gbar_A * a[:, i-1]^3 * b[:, i-1] to tau_V_inv and the corresponding gbar_A * a[:, i-1]^3 * b[:, i-1] * E_K term to V_inf's numerator, and update a and b gates each time step with exponential Euler."
+    },
+    {
+      "description": "The M-current time constant tau_p_M is set to a voltage-independent constant (param_j), but biological M-current has a bell-shaped voltage-dependent tau. Using a constant tau can cause the adaptation kinetics to be too fast or too slow across the voltage range, reducing fit quality even when gbar_M is correct.",
+      "severity": "major",
+      "location": "`tau_p_M = param_j` and the p-gate update inside the simulation loop",
+      "suggestion": "Replace the constant tau with a voltage-dependent expression: tau_p_M_v = param_j / (3.3 * Exp((V[:, i-1] + 35.0) / 20.0) + Exp(-(V[:, i-1] + 35.0) / 20.0)), then use this per-step tau in the exponential-Euler p-gate update: p[:, i] = p_inf_curr + (p[:, i-1] - p_inf_curr) * Exp(-tstep / tau_p_M_v). This gives realistic slow adaptation near rest and faster kinetics near spike threshold."
+    }
+  ]
+}

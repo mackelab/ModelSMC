@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current (IM), injected and stochastic current
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation via standard α/β kinetics
+- **n** (K⁺ delayed-rectifier gate): voltage-dependent activation via α/β kinetics
+- **p** (M-current gate, X1 slot): slow K⁺ activation; gbar_M = params[:,6], E_M = -params[:,8]; tau fixed at 100 ms
+- **Assumptions**: single-compartment; tonic regular spiking; M-current uses exactly 2 inferred slots (gbar_M + E_M); tau_M fixed physiologically; params[:,7] and params[:,9] unused (parsimony)

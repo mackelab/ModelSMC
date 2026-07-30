@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator produces near-deterministic trajectories for large population N because Binomial draws with large n concentrate tightly around the mean. This makes the NLE learn an extremely narrow likelihood, so any slight mismatch between simulated and observed counts yields very negative log-likelihoods (neg_avg_log_marginal_NLE = -445). The secondary issue is that the hard-clipped parameter bounds (beta\u2208[0.10,0.90], gamma\u2208[0.05,0.33]) may exclude the true parameter region, making SBI unable to recover a good posterior.",
+  "issues": [
+    {
+      "description": "For large populations (N >> 1), the Binomial transitions Bin(S, p_SI) and Bin(I, p_IR) have standard deviation \u221a(N\u00b7p\u00b7(1-p)) which is tiny relative to N. The simulator becomes essentially deterministic, and NLE learns an unrealistically narrow emission distribution. Any observation that deviates from the deterministic mean trajectory (due to real-world overdispersion, superspreading, reporting noise, etc.) receives an astronomically low likelihood, explaining the very negative NLE scores.",
+      "severity": "critical",
+      "location": "forward() \u2014 new_SI and new_IR binomial draws, lines: `new_SI = int(rng.binomial(n=S, p=p_SI))` and `new_IR = int(rng.binomial(n=I, p=p_IR))`",
+      "suggestion": "Replace or augment the simple Binomial draws with an overdispersed process to capture real-world variability. Concretely, use a Beta-Binomial: sample p_SI_draw = rng.beta(a, b) where a = p_SI * phi and b = (1-p_SI) * phi (phi is a small dispersion parameter, e.g. phi=10\u201350), then draw new_SI = rng.binomial(S, p_SI_draw). Apply the same to recoveries. This widens the emission distribution, prevents near-zero likelihoods for plausible trajectories, and makes the NLE learn a realistic spread. Alternatively, add Gaussian noise scaled by \u221a(N\u00b7p\u00b7(1-p)) * overdispersion_factor to the transitions before rounding."
+    },
+    {
+      "description": "The hard np.clip on parameters (beta\u2208[0.10,0.90], gamma\u2208[0.05,0.33]) silently truncates proposals from SBI. If the true generating parameters lie near or outside these bounds\u2014or if the posterior is broad and SBI needs to explore wider regions\u2014gradients through the clipping are zero and the optimizer cannot escape the boundary. This severely distorts the posterior estimate and inflates negative NLE.",
+      "severity": "major",
+      "location": "forward() \u2014 `beta = float(np.clip(parameters[0], 0.10, 0.90))` and `gamma = float(np.clip(parameters[1], 0.05, 0.33))`",
+      "suggestion": "Either (a) remove the hard clips and rely on the SBI prior to constrain the parameter space (set a broad but realistic prior, e.g. beta\u2208[0.05,1.5], gamma\u2208[0.03,0.5]), or (b) use a smooth sigmoid-based reparameterisation: `beta = 0.05 + 1.45 * sigmoid(raw_beta)` so the mapping is differentiable everywhere and the optimizer has a smooth gradient signal across the full plausible range. This allows SBI to explore a wider posterior and correctly identify the true parameters from limited data."
+    }
+  ]
+}

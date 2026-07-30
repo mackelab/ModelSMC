@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation → fast spike generation
+- **n** (K⁺ gate): delayed rectifier activation → repolarization; E_K = −77 mV (physiological)
+- **p** (M-current gate): slow K⁺, Boltzmann activation; V_half_M fitted via params[:,8] (range [−50, −25] mV)
+- **Key fixes this iteration**: (1) tau_p linearly rescaled to [5, 400] ms (eliminates gradient clamp saturation); (2) V_half_M made tunable via params[:,8] — both levers jointly optimised in X1

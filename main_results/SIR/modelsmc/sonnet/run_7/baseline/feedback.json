@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function body is completely empty (contains only `...` placeholder and returns an unchanged state copy). No SIR dynamics are implemented at all, causing the catastrophically high negative log-likelihood scores (~1.58e+29/1.58e+31).",
+  "issues": [
+    {
+      "description": "The forward function contains no SIR model dynamics whatsoever. It simply copies and returns the current state unchanged, meaning the simulator produces a flat, non-evolving trajectory. This is the sole cause of the extreme metric values.",
+      "severity": "critical",
+      "location": "forward method, after `next_state = state.copy()`",
+      "suggestion": "Implement the discrete stochastic SIR model. Extract beta=parameters[0] and gamma=parameters[1]. Compute N=S+I+R. Use binomial draws for transitions: new_infections ~ Binomial(S, 1-exp(-beta*I/N)) and new_recoveries ~ Binomial(I, gamma). Then set S_next = S - new_infections, I_next = I + new_infections - new_recoveries, R_next = R + new_recoveries. Clip all values to be non-negative and ensure integer types. Example:\n\n```python\nS, I, R = int(state['S']), int(state['I']), int(state['R'])\nbeta, gamma = float(parameters[0]), float(parameters[1])\nN = S + I + R\nif N == 0 or I == 0:\n    return state.copy()\nprob_infection = 1.0 - np.exp(-beta * I / N)\nprob_recovery = gamma\nnew_infections = int(rng.binomial(S, np.clip(prob_infection, 0.0, 1.0)))\nnew_recoveries = int(rng.binomial(I, np.clip(prob_recovery, 0.0, 1.0)))\nnext_state = {'S': S - new_infections, 'I': I + new_infections - new_recoveries, 'R': R + new_recoveries}\n```"
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. Additionally, there are no default/prior values for beta and gamma.",
+      "severity": "major",
+      "location": "__init__ method",
+      "suggestion": "Initialize self.parameters with sensible COVID-19 defaults in __init__, e.g.: `self.parameters = np.array([0.3, 0.1])` corresponding to beta~0.3 (transmission rate) and gamma~0.1 (recovery rate, ~10-day infectious period). This ensures the simulator is functional immediately after instantiation."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The X2 slot (params[:,9]) remains entirely unused, leaving untapped capacity to correct systematic discrepancies in subthreshold and inter-spike metrics (resting potential mean/std, skewness, kurtosis). The M-current alone governs adaptation but does not address hyperpolarization-activated inward drive between spikes. A hyperpolarization-activated cation current (I_h / HCN) in the X2 slot would improve the resting potential statistics (metrics 2\u20133) and inter-spike voltage trajectory shape (metrics 6\u20137) without introducing bursting, because I_h activates well below spike threshold and carries mixed Na\u207a/K\u207a current with a depolarised reversal (~-30 mV), providing a gentle inward drive that counteracts deep after-hyperpolarizations and regularises ISI profiles.",
+  "issues": [
+    {
+      "description": "X2 slot (params[:,9]) is entirely unused despite systematic residual error (NLE=24.5). The remaining mismatch in resting potential variance, skewness, and kurtosis is consistent with missing subthreshold inward current (I_h) that shapes the inter-spike trajectory and the pre-stimulus resting membrane. I_h activates at hyperpolarized potentials (half-activation V_half_h ~ -75 mV, slope ~7 mV), is non-inactivating, has a slow time constant (~100\u2013300 ms), and a depolarised reversal (~-30 mV). It produces a 'sag' during hyperpolarization and a rebound that regularises tonic ISIs \u2014 consistent with the target phenotype \u2014 without bursting.",
+      "severity": "major",
+      "location": "forward() \u2014 X2 slot assignment block and integration loop",
+      "suggestion": "Implement I_h using params[:,9] as gbar_h (max conductance, range [1e-4, 2] mS/cm\u00b2). Use fixed physiological constants: E_h = -30.0 mV, V_half_h = -75.0 mV, k_h = 7.0 mV (slope), tau_h = 200.0 ms (slow, voltage-independent). Steady-state gate: r_inf(V) = 1 / (1 + exp((V - V_half_h) / k_h)) \u2014 note positive slope since I_h activates on hyperpolarization. Add gbar_h * r[:, i-1] to tau_V_inv and gbar_h * r[:, i-1] * E_h to the V_inf numerator. Update r with exponential Euler: r[:, i] = r_inf(V[:, i-1]) + (r[:, i-1] - r_inf(V[:, i-1])) * exp(-dt / tau_h). Initialise r[:, 0] = r_inf(V_init)."
+    },
+    {
+      "description": "The tau_p linear mapping (params[:,7] in [1e-4, 120] \u2192 tau_p in [5, 405] ms) compresses most of the physiologically important range (20\u2013150 ms) into a small fraction of the raw parameter interval, giving the optimizer poor gradient coverage in the critical mid-range. Values of params[:,7] below ~5 correspond to tau_p < 20 ms (too fast for M-current adaptation), while most of the useful 50\u2013300 ms range occupies only ~15\u201385% of the raw interval. A log-scale or sqrt mapping would spread gradient signal more evenly across the adaptation timescale.",
+      "severity": "minor",
+      "location": "forward() \u2014 tau_p computation (line: tau_p = 5.0 + params[:, 7].float() * (395.0 / 120.0))",
+      "suggestion": "Replace the linear rescaling with a log-scale mapping to give uniform gradient coverage across decades: tau_p = 5.0 * torch.exp(params[:, 7].float() * (torch.log(torch.tensor(80.0)) / 120.0)), which maps params[:,7] \u2208 [0, 120] \u2192 tau_p \u2208 [5, 400] ms on a log scale. Alternatively, use tau_p = 5.0 + (params[:, 7].float() ** 0.5) * (395.0 / (120.0 ** 0.5)) for a sqrt mapping. Either approach concentrates gradient mass in the 20\u2013100 ms regime where M-current adaptation is most physiologically relevant."
+    }
+  ]
+}

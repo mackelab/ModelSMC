@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered), N = S+I+R (conserved total population)
+- **Parameters**: β ∈ (0,1) transmission rate, γ ∈ (0,1) recovery rate
+- **S → I**: new_infections ~ Binomial(S, 1 − exp(−β·I/N)), driven by force of infection
+- **I → R**: new_recoveries ~ Binomial(I, 1 − exp(−γ)), independent daily recovery process
+- **Assumptions**: closed population (no births/deaths), discrete-time stochastic SIR, Markov transitions

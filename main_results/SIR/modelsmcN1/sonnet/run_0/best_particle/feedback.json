@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The pure scaled-softplus parameter transform introduced in the current iteration has caused a performance regression from the best-known NLE\u2248-529 (n_sub=4) to NLE\u2248-556, worse even than the n_sub=1 baseline of -548. The unbounded support of raw softplus spreads SBI prior mass across epidemiologically implausible regions (very high or near-zero beta/gamma), making it harder for NLE to learn an identifiable likelihood surface. The fix is to replace the unbounded softplus transform with a sigmoid-bounded transform that constrains parameters to known COVID-19 epidemiological ranges.",
+  "issues": [
+    {
+      "description": "The pure scaled-softplus transform (beta = softplus(raw)*0.40, gamma = softplus(raw)*0.15) is unbounded above, allowing SBI to explore beta>1.5/day or gamma>0.6/day \u2014 rates incompatible with any observed COVID-19 trajectory. This wastes simulator budget on implausible regions and degrades the NLE likelihood surface. Performance dropped to -556 from the best-known -529, confirming the transform change is the primary regression cause.",
+      "severity": "critical",
+      "location": "forward() \u2014 parameter transform block (~line 80-115)",
+      "suggestion": "Replace with a sigmoid-bounded transform that enforces epidemiologically valid ranges: beta = 0.05 + 0.75 * sigmoid(raw_beta)  [range ~0.05\u20130.80/day, covering R0 1\u20138] and gamma = 0.03 + 0.37 * sigmoid(raw_gamma)  [range ~0.03\u20130.40/day, infectious period 2.5\u201333 days]. Use sigmoid(x) = 1/(1+exp(-x)) with the same two-branch numerical stability trick for |x|>20. This gives bounded, smooth, monotone transforms with non-vanishing gradients and concentrates SBI's search within the plausible parameter space, which should recover and improve upon the -529 NLE score."
+    },
+    {
+      "description": "With the current parameter transform causing implausible trajectories (high beta or very low gamma), many simulated trajectories reach S\u22480 or I\u22480 within 10\u201320 steps, producing degenerate near-constant tails. These degenerate trajectories dominate the NLE training set and flatten the learned likelihood surface, making posterior concentration impossible regardless of n_sub. This is a secondary effect of the transform issue but compounds the NLE degradation.",
+      "severity": "major",
+      "location": "forward() \u2014 tau-leaping loop and early-exit guard (~line 140-195)",
+      "suggestion": "After fixing the parameter transform to bounded ranges, add a soft absorbing guard: if S_sub < 1 and I_sub < 1, break immediately without further sub-steps (already partially present but relies on I_sub==0 only). Additionally, consider logging an internal epidemic_extinct flag and returning it as metadata so SBI can down-weight degenerate trajectories during likelihood estimation. If the bounded transform is adopted, the incidence of such trajectories should drop sharply and the n_sub=4 sub-stepping should recover its -529 performance."
+    }
+  ]
+}

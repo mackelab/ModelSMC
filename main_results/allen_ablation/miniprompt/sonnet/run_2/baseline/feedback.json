@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator is missing a slow K+ M-current (IM) channel responsible for spike-frequency adaptation. With only fast Na+/K+ and leak channels, the model cannot reproduce the subthreshold dynamics and firing rate adaptation seen in experimental recordings. The high neg_avg_log_marginal_NLE (26.6) strongly suggests a systematic mismatch in spike-rate adaptation or subthreshold resonance that a single additional gating variable can fix. The editable sections under tau_V_inv and V_inf in the simulation loop, plus the kinetics section, are the key locations that need modification.",
+  "issues": [
+    {
+      "description": "Missing slow K+ M-current (IM) channel: without it the model cannot reproduce spike-frequency adaptation. gbar_X1 (range [1e-4, 10] mS/cm\u00b2) should be used as the M-current conductance, reusing E_K = -107 mV so no extra reversal potential parameter is needed. param_j (negated, raw range [1e-4, 3000]) can serve as a slow time-constant numerator (e.g. tau_max \u2248 hundreds of ms), and param_i can serve as a voltage offset or half-activation parameter (negated, raw range [1e-4, 150]).",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs: kinetics definitions, state-variable declarations, initialization, and the simulation loop (tau_V_inv / V_inf / state update).",
+      "suggestion": "1) Add kinetics in the first editable block:\n```python\ndef p_inf(x):\n    return 1.0 / (1 + Exp(-(x - param_i - 35.0) / 10.0))\n\ndef tau_p(x):\n    return -param_j / (3.3 * (Exp((x - param_i - 35.0) / 20.0) + Exp(-(x - param_i - 35.0) / 20.0)) + 1e-7)\n```\n2) Declare `p = torch.zeros((batch_size, time_steps), device=device)` in the state-variable block.\n3) Initialize `p[:, 0] = p_inf(V[:, 0])`.\n4) In the loop, compute `p_inf_val = p_inf(V[:, i-1]); tau_p_val = tau_p(V[:, i-1])` and add `gbar_X1` terms:\n   - `tau_V_inv += gbar_X1 * p[:, i-1] / C`\n   - `V_inf += gbar_X1 * p[:, i-1] * E_K / C` (before dividing by tau_V_inv*C)\n   - `p[:, i] = p_inf_val + (p[:, i-1] - p_inf_val) * Exp(-tstep / tau_p_val)`"
+    },
+    {
+      "description": "gbar_X2 and its channel are unused: if the M-current alone does not fully close the gap, a second channel (e.g. T-type Ca\u00b2\u207a current with E_Ca \u2248 param_i interpreted as a positive reversal) could be added, but only after verifying M-current alone is insufficient, to respect the 'keep the model as simple as possible' directive.",
+      "severity": "suggestion",
+      "location": "params[:, 7] extraction and all four EDITABLE SECTIONs.",
+      "suggestion": "Leave gbar_X2 extracted but unused for now. If post-M-current metrics remain high (neg_avg_log_marginal_NLE >> 10), add a T-type Ca\u00b2\u207a channel using gbar_X2 with two gating variables (m_T, h_T) and E_Ca = |param_i| as a positive reversal potential, following standard Destexhe/Huguenard T-channel kinetics."
+    }
+  ]
+}

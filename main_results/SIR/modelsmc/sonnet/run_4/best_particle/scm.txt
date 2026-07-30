@@ -1,0 +1,5 @@
+- **Variables**: S (Susceptible), I (Infected), R (Recovered), N = S+I+R (conserved total population)
+- **S → I**: new_infections ~ Binomial(S, 1−exp(−β·I/N)); β = param[0] ∈ [0.05, 0.60] — COVID-realistic R0 range ~0.25–12
+- **I → R**: new_recoveries ~ Binomial(I, 1−exp(−γ)); γ = param[1] ∈ [0.04, 0.20] — 5–25 day infectious period, consistent hazard framework
+- **Assumptions**: Discrete stochastic SIR; both transitions use identical `1−exp(−rate)` Poisson survival formula; recoveries capped to prevent I < 0
+- **Constraints**: β ∈ [0.05, 0.60], γ ∈ [0.04, 0.20]; N conserved exactly; S, I, R ≥ 0 integers; new_recoveries ≤ I + new_infections

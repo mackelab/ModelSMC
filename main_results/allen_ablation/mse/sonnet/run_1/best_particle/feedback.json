@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The dominant failure is spike count MSE=11.8, driven by the tau_w sigmoid remap that restricts tau_w to (155\u2013300) ms for virtually all prior samples (since params[:,9] \u2208 [1e-4, 3000] maps via sigmoid to (0.5, 1.0), collapsing the effective range to the slow upper half). This prevents the inference engine from discovering short adaptation time constants (<150 ms) that are often necessary to reproduce observed tonic firing rates. The secondary failure (variance MSE=6.79) reflects incomplete voltage distribution shaping; the unused params[:,8] slot represents a missed opportunity to add an inward rectifier or H-current that could fix inter-spike voltage dynamics.",
+  "issues": [
+    {
+      "description": "tau_w is effectively restricted to (155, 300) ms for all prior samples because params[:,9] \u2208 [1e-4, 3000] always yields sigmoid > 0.5, collapsing the lower half of the physiological range. M-current adaptation time constants of 20\u2013150 ms (fast adaptation) are completely unreachable, causing the optimizer to fit a systematically wrong firing rate and yielding spike count MSE=11.8.",
+      "severity": "critical",
+      "location": "tau_w = 10.0 + 290.0 * torch.sigmoid(params[:, 9])",
+      "suggestion": "Replace the sigmoid remap with a log-space (exponential) remap that distributes gradient uniformly in log-tau space across the full physiological range. Use: tau_w = 10.0 * torch.exp(torch.log(torch.tensor(300.0 / 10.0)) * torch.sigmoid(params[:, 9])), which maps sigmoid output (0, 1) to tau_w \u2208 (10, 300) ms with equal gradient at all scales. For the prior [1e-4, 3000], sigmoid collapses to (0.5, 1.0), so refine to: tau_w = torch.exp(2.3 + 3.5 * torch.sigmoid(params[:, 9])) giving range ~(10, 330) ms with half the prior mass in (10, 100) ms\u2014enabling discovery of fast adaptation regimes that control spike count."
+    },
+    {
+      "description": "params[:,8] (X2 slot first parameter) is unused while variance MSE=6.79 and skewness MSE=1.89 remain elevated. The M-current alone cannot independently shape the inter-spike baseline voltage distribution. A hyperpolarization-activated cation current (Ih/HCN) would control the AHP depth and baseline voltage variance without promoting bursting, directly improving these statistics.",
+      "severity": "major",
+      "location": "params[:, 8] is deliberately left unused (param_i slot reserved for future use)",
+      "suggestion": "Implement a simple Ih channel using the X2 slot: gbar_h = params[:,8] with fixed parameters (E_h = -30 mV, V_half_h = -75 mV, slope_h = -10 mV, tau_h = 50 ms). Add gate variable `q` with q_inf(V) = 1/(1+exp((V - V_half_h)/slope_h)) and exponential Euler update. Ih current = gbar_h * q * (V - E_h) contributes to tau_V_inv and V_inf exactly as M-current does. This depolarizing inward current during AHP reduces variance and corrects skewness without altering spike count significantly, targeting variance MSE=6.79 and skewness MSE=1.89 simultaneously."
+    }
+  ]
+}

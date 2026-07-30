@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator achieves only marginal performance (neg_avg_log_marginal_NLE = 24.2) because it relies on a single added channel (M-current via X1 slot) while the X2 slot is completely unused. A single slow K+ adaptation current cannot simultaneously capture spike-count statistics AND the full voltage distribution moments (variance, skewness, kurtosis) observed in the data. The high NLE indicates the model lacks sufficient mechanistic degrees of freedom to fit all seven summary statistics jointly.",
+  "issues": [
+    {
+      "description": "The X2 channel slot (params[:,7]) is entirely unused, wasting one inferred conductance parameter. The M-current alone cannot simultaneously match mean voltage during stimulation, variance, skewness, AND kurtosis. A second mechanism \u2014 such as a hyperpolarization-activated (Ih) or A-type K+ (IA) current \u2014 contributes to subthreshold voltage fluctuations and inter-spike dynamics, which strongly control distribution shape (skewness, kurtosis) without introducing bursting. A persistent Na+ current (INaP) is another candidate that shifts mean subthreshold voltage and can resolve the mean-voltage and variance discrepancy.",
+      "severity": "critical",
+      "location": "params[:, 7] (gbar_X2 slot) is declared unused; no second channel is implemented anywhere in the forward() loop",
+      "suggestion": "Implement a second channel using params[:,7] as its conductance (gbar_X2) and fix its kinetics to reasonable physiological defaults (no extra inferred params needed since param_i/param_j are already claimed by X1). A good candidate is a subthreshold-persistent Na+ current (INaP): I_NaP = gbar_X2 * m_p_inf(V) * (V - E_Na), where m_p_inf(V) = 1/(1+exp(-(V+55)/5)) (fixed, no free params). Alternatively, an A-type K+ current with fixed half-inactivation/activation voltages would reduce spike height variance and sharpen kurtosis. Add the corresponding current term inside the tau_V_inv and V_inf computations in the integration loop."
+    },
+    {
+      "description": "The M-current gate uses a voltage-INDEPENDENT time constant (tau_Km = params[:,9]), but the physiologically correct M-current tau is bell-shaped and peaks near the half-activation voltage (~20\u2013100 ms near -35 mV, faster far from it). A flat tau mis-specifies the relaxation dynamics at all voltages away from v_half, degrading the fit to inter-spike intervals and voltage variance. Additionally, the prior range on tau_Km ([1e-4, 3000] ms) is extremely wide; this inflates posterior uncertainty and makes inference inefficient, contributing to the high NLE.",
+      "severity": "major",
+      "location": "p_inf() definition and p[:, i] update in the time integration loop; params[:, 9] (tau_Km)",
+      "suggestion": "Replace the constant tau_Km with a voltage-dependent expression: tau_p(V) = tau_max / (3.3 * exp((V - v_half)/40) + exp(-(V - v_half)/20)), where tau_max = tau_Km (the inferred parameter). This preserves one inferred parameter but adds physiologically correct voltage dependence. Also tighten the prior range on tau_Km to [5, 500] ms to concentrate inference in the biologically plausible M-current regime, reducing the NLE penalty from prior-mismatch. Update the p[:, i] exponential Euler step to use tau_p(V_prev) instead of tau_Km directly."
+    }
+  ]
+}

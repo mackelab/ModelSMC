@@ -1,0 +1,5 @@
+- **S, I, R**: Susceptible, Infected, Recovered integer compartments; N = S+I+R conserved
+- **β** (param[0]): transmission rate ∈ [0.05, 1.0]; per-capita infection hazard = β·I/N per day
+- **γ** (param[1]): recovery rate ∈ [0.03, 0.2]; mean infectious period = 1/γ days (5–33 days)
+- **new_infections** ~ Binomial(S, 1−exp(−β·I/N)); **new_recoveries** ~ Binomial(I, 1−exp(−γ))
+- Stochastic discrete-time SIR; exponential waiting-time probabilities prevent p>1; zero bias

@@ -1,0 +1,8 @@
+# @package _global_
+method:
+  req_num_cpus_per_ray_thread: 1
+  req_num_gpus_per_ray_thread: 0
+
+  evaluator:
+    likelihood_estimator: NLE
+    NLE_max_num_epochs: 500

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from the params tensor but are entirely unused \u2014 all editable sections in the kinetics, state variable initialization, and simulation loop remain empty. The simulator therefore runs as a plain 3-variable HH model with no ability to improve the fit regardless of what the inference engine proposes for those parameters. A slow non-inactivating K\u207a current (M-current) should be added using the X1 slot to support regular tonic spiking and improve the voltage distribution statistics.",
+  "issues": [
+    {
+      "description": "All editable sections (kinetics, state variable declarations, initialization, loop updates, tau_V_inv and V_inf contributions) are empty. gbar_X1, gbar_X2, param_i, and param_j are extracted but never used in the forward pass, so the model is purely a 3-variable HH regardless of inferred parameters. This directly causes the high NLE loss because the model cannot reproduce the observed voltage statistics.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks inside DiscoveredSimulator.forward()",
+      "suggestion": "Implement an M-current (slow non-inactivating K\u207a) using the X1 slot. Add kinetics: `p_inf = lambda v: 1.0 / (1.0 + torch.exp(-(v - param_i) / 10.0))` and `tau_p = lambda v: param_j / (3.3e-3 * Exp(0.04*(v + 35)) + 3.3e-3 * Exp(-0.04*(v + 35)))` (or a simpler fixed-shape tau). Declare state variable `p = torch.zeros(...)`, initialize with `p[:, 0] = p_inf(V[:, 0])`, update as `p[:, i] = p_inf(V_prev) + (p_prev - p_inf(V_prev)) * Exp(-tstep / tau_p(V_prev))`, and add the M-current contribution to tau_V_inv as `+ gbar_X1` and to V_inf numerator as `+ gbar_X1 * E_K`. Leave the X2 slot unused to maintain parsimony."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (`-params[:, 8]`, `-params[:, 9]`), but the raw parameter values are positive in [1e-4, 150] and [1e-4, 3000] respectively. For a half-activation voltage (param_i) that should be near -30 to -40 mV and a time-constant scale (param_j) that should be large and positive, the negation is correct for param_i but param_j should remain positive for a time constant. If param_j is used as a time constant divisor or scale, the sign must be consistent, otherwise the gating time constant will be negative, causing Exp(-tstep/tau) to diverge.",
+      "severity": "major",
+      "location": "Lines: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Keep `param_i = -params[:, 8].float()` (maps positive values to negative half-activation voltages, appropriate for M-current near -35 mV). Change `param_j = params[:, 9].float()` (no negation) so it remains a positive time-constant scale in [1e-4, 3000] ms, ensuring `tau_p > 0` at all voltages. Guard against zero with a clamp: `tau_p = torch.clamp(param_j / denom, min=0.1)`."
+    }
+  ]
+}

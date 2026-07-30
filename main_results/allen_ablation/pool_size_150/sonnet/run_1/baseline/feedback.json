@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator extracts four additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) from the parameter vector but all EDITABLE sections remain empty\u2014no kinetics, state variables, or current contributions are ever implemented. These parameters are dead code with zero effect on the output voltage, so the inference procedure cannot improve fit by adjusting them. This is the direct cause of the high neg_avg_log_marginal_NLE (~25.8). For tonic, regular spiking without bursting, a slow M-type (muscarinic) K\u207a current (single non-inactivating activation gate) is the canonical missing channel.",
+  "issues": [
+    {
+      "description": "gbar_X1 (and param_i as half-activation shift) are extracted but never used. No kinetics function, no state variable, and no current term is added for channel X1. The inferred conductance has zero effect on the simulation output, so the likelihood cannot improve regardless of what value is inferred.",
+      "severity": "critical",
+      "location": "All five EDITABLE sections \u2014 kinetics block, state variable declaration, initialization, inner-loop alpha/beta computation, and tau_V_inv / V_inf accumulation",
+      "suggestion": "Add an M-type slow K\u207a current using gbar_X1 and param_i. (1) Kinetics block: define `def alpha_p(x): v1 = x - param_i - 35.0; return 1e-3 * efun(-0.1 * v1) / 0.1` and `def beta_p(x): v1 = x - param_i - 35.0; return 1e-3 * torch.exp(-0.1 * v1)` (param_i shifts half-activation). (2) State variable: `p = torch.zeros(...)`. (3) Init: `p[:, 0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`. (4) Loop: compute `a_p, b_p = alpha_p(V[:,i-1]), beta_p(V[:,i-1])`. (5) Add `+ p[:,i-1] * gbar_X1` to tau_V_inv and `+ p[:,i-1] * gbar_X1 * E_K` to V_inf numerator. (6) Update p: `p[:,i] = inf_x(a_p,b_p) + (p[:,i-1]-inf_x(a_p,b_p))*Exp(-tstep/tau_x(a_p,b_p))`."
+    },
+    {
+      "description": "param_j (range \u2248 [-3000, -1e-4] after negation) is extracted but completely unused. It is available as a second tunable parameter for channel X1 or X2 kinetics (e.g., to scale the M-current time constant) but contributes nothing to the simulation, wasting a degree of freedom that the inference could use to match inter-spike-interval regularity.",
+      "severity": "major",
+      "location": "param_j extraction line and all EDITABLE sections",
+      "suggestion": "Use param_j as a time-constant scale for the M-current: replace the bare `tau_x(a_p, b_p)` denominator in the p-update with `tau_x(a_p, b_p) * tau_scale` where `tau_scale = torch.clamp(-param_j / 500.0, min=0.1, max=20.0)`. This lets inference tune both the activation threshold (param_i) and the kinetic speed (param_j) of the slow K\u207a channel to match the observed ISI regularity and resting potential statistics."
+    }
+  ]
+}

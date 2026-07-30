@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator wastes the X2 conductance slot (params[:,7]=gbar_X2 is allocated but never wired into the ODE), leaving a free inferrable parameter that contributes nothing to the dynamics. Combined with an overly broad V_half_km mapping (raw [1e-4,150] minus 80 \u2192 [-80,70] mV), the inference algorithm must search a large, unconstrained space while the model itself lacks the subthreshold conductance needed to reproduce mean/std of resting potential and the higher-order voltage distribution statistics (skewness, kurtosis). The neg_avg_log_marginal_NLE of 25.4 is consistent with poor resting-state and inter-spike interval statistics rather than a gross spike-count error.",
+  "issues": [
+    {
+      "description": "The X2 conductance slot (params[:,7]) is declared and allocated but never used in any current term, so the inference wastes a free parameter without any benefit to the model fit. Adding a hyperpolarization-activated cation current (Ih, HCN channels) using gbar_X2 with fixed kinetics (half-activation ~-75 mV, sigmoidal slope k=7 mV, time constant ~100 ms, reversal E_h=-25 mV) would regulate the resting membrane potential and its variance, directly targeting the mean/std resting-potential metrics and the higher-order distribution statistics (skewness, kurtosis) that are currently mismatched.",
+      "severity": "critical",
+      "location": "params[:,7] (gbar_X2) declared but never referenced; no Ih current term in the ODE loop",
+      "suggestion": "Wire gbar_X2 = params[:,7] into an Ih current: define r_inf_h(V) = 1/(1+exp((V+75)/7)), tau_r = 100 ms (fixed), update gate r with exponential Euler identical to p_km update, compute I_h = gbar_X2 * r * (V - E_h) with E_h = -25 mV, and add I_h to both the V_inf numerator and tau_V_inv denominator. This uses the pre-allocated conductance parameter without consuming the remaining flexible param slots."
+    },
+    {
+      "description": "The V_half_km parameter mapping (raw param_i in [1e-4,150] minus 80 gives [-80,70] mV) is physiologically implausible for M-current over most of its range, causing the inference to waste posterior mass on V_half values far from the functional zone (~-50 to -20 mV). Additionally, the time-constant mapping (raw param_j/10 \u2192 [0,300] ms) has no lower physiological guard; extremely small tau_km (< 20 ms) collapses the M-current into a fast rectifier, defeating its purpose as a slow AHP mechanism and degrading spike-timing regularity statistics.",
+      "severity": "major",
+      "location": "Lines computing V_half_km = params[:,8] - 80.0 and tau_km = (params[:,9]/10).clamp(min=5.0, max=300.0)",
+      "suggestion": "Narrow the V_half_km mapping to cover the physiologically relevant M-current range: e.g. V_half_km = params[:,8] * (40.0/150.0) - 55.0, mapping [1e-4,150] \u2192 [-55,-15] mV. Raise the tau_km lower clamp to 20 ms (clamp(min=20.0, max=300.0)) to ensure the M-current always acts as a slow hyperpolarising mechanism, improving spike-regularity and ISI statistics without risk of the gate becoming instantaneous."
+    }
+  ]
+}

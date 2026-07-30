@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The parameter bounds in `set_parameters` are critically too narrow, preventing simulation-based inference (SBI) from adequately exploring the posterior parameter space. The hard clips to beta\u2208[0.05, 0.50] and gamma\u2208[0.02, 0.20] may exclude the true parameter values for the observed COVID trajectories, causing the inference engine to never simulate trajectories close to the observed data. This is the most likely cause of the extremely negative NLE scores (-490 avg, -4.9e4 total), which indicate that every simulated trajectory has near-zero likelihood under the observed data distribution.",
+  "issues": [
+    {
+      "description": "Parameter bounds in `set_parameters` are far too restrictive for SBI. Beta is clipped to [0.05, 0.50] and gamma to [0.02, 0.20]. If the true data-generating parameters fall outside these intervals (e.g., early-pandemic COVID with beta>0.5, or faster recovery gamma>0.20), the SBI posterior will be entirely cut off. The inference procedure will propose parameters outside these bounds, which will be silently clipped, producing a collapsed prior and biased, degenerate NLE estimates. This directly explains the large negative log-likelihoods.",
+      "severity": "critical",
+      "location": "set_parameters method, lines: lower = np.array([0.05, 0.02]) / upper = np.array([0.50, 0.20])",
+      "suggestion": "Substantially widen the parameter bounds to cover a realistic COVID-19 range that allows SBI to explore freely. Use lower = np.array([0.01, 0.01]) and upper = np.array([1.0, 0.5]). This ensures beta can capture both mild (R0~1) and highly transmissible (R0~6+) scenarios, and gamma can model recovery periods from ~2 days to ~100 days. Additionally, update the matching clips inside the `forward` method from `np.clip(parameters[0], 0.05, 0.50)` and `np.clip(parameters[1], 0.02, 0.20)` to `np.clip(parameters[0], 0.01, 1.0)` and `np.clip(parameters[1], 0.01, 0.5)` for consistency."
+    },
+    {
+      "description": "The default initial parameters [0.25, 0.07] in __init__ correspond to a specific COVID scenario (R0~3.6) that may be far from the observed dataset. While SBI sets parameters externally, if the inference framework uses the simulator's own default as a starting guess or prior center, a poorly centered prior leads to very low prior-predictive likelihood and inefficient posterior exploration, compounding the bounds issue.",
+      "severity": "major",
+      "location": "__init__ method: self.parameters = np.array([0.25, 0.07])",
+      "suggestion": "Update the default parameters to a broader, more neutral starting point that sits near the center of the widened prior, e.g., self.parameters = np.array([0.3, 0.1]). This represents R0~3, a mid-range COVID scenario, and sits centrally within the expanded bounds [0.01,1.0] x [0.01,0.5], providing a more neutral prior center for SBI initialization and improving sampling efficiency."
+    }
+  ]
+}

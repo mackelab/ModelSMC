@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered); N = S+I+R strictly conserved
+- **S → I**: pure Binomial(S, 1−exp(−β·I/N)); exact exponential hazard; simultaneous tau-leaping from start-of-day S, I — validated best
+- **I → R**: pure Binomial(I, 1−exp(−γ)); drawn from start-of-day I (simultaneous); no overdispersion — validated best
+- **Parameters**: θ = [β, γ]; **tightened bounds** β ∈ [0.05, 0.80], γ ∈ [0.02, 0.25] (COVID-plausible R0~0.6–10, infectious period 4–50 days); defaults β=0.25, γ=0.07
+- **Assumptions**: Simultaneous pure Binomial tau-leaping NLE=-349 (best); tightened prior volume reduces SBI diffusion with few samples; R via N−S−I conservation eliminates drift

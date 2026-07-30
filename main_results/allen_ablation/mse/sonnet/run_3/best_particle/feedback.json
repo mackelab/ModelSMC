@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The primary failure is in skewness (MSE=4.1) and kurtosis (MSE=2.43), which reflect the shape of the voltage distribution set by action potential waveform and after-hyperpolarization (AHP) dynamics. The A-current's cubic activation term `aA^3` creates an unrealistically steep, threshold-like conductance onset that distorts spike repolarization shape relative to the data, inflating higher-order distribution statistics. A secondary issue is the M-current half-activation voltage ranging from -115 mV to +35 mV (param_i + 35), which allows v_half at unphysical values that can partially activate IM at rest, corrupting resting-state std (MSE=1.46) and variance (MSE=2.32).",
+  "issues": [
+    {
+      "description": "The A-current effective conductance uses `gbar_IA * (aA_prev ** 3) * bA_prev`. The cubic exponent makes activation ultrasteeply voltage-dependent, creating a near-switch-like onset that distorts spike repolarization and AHP shape. This directly causes the high skewness (MSE=4.1) and kurtosis (MSE=2.43) errors because the simulated voltage waveform shape \u2014 particularly the falling phase and undershoot \u2014 no longer matches the data distribution.",
+      "severity": "critical",
+      "location": "g_IA_eff = gbar_IA * (aA_prev ** 3) * bA_prev  # line in main simulation loop",
+      "suggestion": "Change the A-current activation exponent from cubic to linear or quadratic: `g_IA_eff = gbar_IA * aA_prev * bA_prev` or `gbar_IA * (aA_prev ** 2) * bA_prev`. Classic Kv4/A-type currents are commonly modeled with first- or second-power activation gates. Reducing the exponent smooths the voltage dependence, allowing the A-current to engage more gradually during spike repolarization and produce AHP shapes closer to the experimental waveforms, thereby correcting skewness and kurtosis."
+    },
+    {
+      "description": "The M-current half-activation voltage is computed as `v_half = param_i + 35.0` where `param_i = -params[:, 8]` and `params[:, 8]` can range widely (up to 150), giving v_half from roughly -115 mV to +35 mV. At values below -60 mV, IM is substantially activated at rest, incorrectly hyperpolarizing the resting potential and increasing its variability. This contributes to resting std MSE=1.46, variance MSE=2.32, and spike-count MSE=1.57 since an over-activated M-current at rest suppresses spiking.",
+      "severity": "major",
+      "location": "def p_inf(x): v_half = param_i + 35.0",
+      "suggestion": "Constrain the M-current half-activation voltage to a biophysically realistic range for M-type (Kv7/KCNQ) channels, typically -50 to -10 mV. Change the offset: `v_half = param_i + 10.0` combined with clamping `param_i` to [-40, 40] mV (i.e., `params[:, 8]` in [0, 40] giving param_i in [-40, 0], plus offset 10 giving v_half in [-30, 10] mV). This prevents IM from being pathologically activated at resting membrane potentials (~-65 to -70 mV), restoring correct resting statistics while preserving M-current's spike-frequency adaptation role."
+    }
+  ]
+}

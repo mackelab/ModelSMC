@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The negative log-marginal-NLE of 24.3 indicates a substantial mismatch between simulations and experimental data. The primary failure is likely in voltage statistics during rest (mean, std, skewness, kurtosis): the noise current is divided by `tau_V_inv * C` inside the V_inf expression, making effective noise amplitude strongly state-dependent (amplified when conductances are low at rest, suppressed during spikes). This biases all higher-order statistics. A secondary issue is that a single M-current may not fully capture the ISI regularity and spike-count distribution for tonic spiking, and the available X2 slot remains unused.",
+  "issues": [
+    {
+      "description": "The current noise term `noise / (tstep**0.5)` is placed inside V_inf and then divided by `tau_V_inv * C`. This couples noise amplitude inversely to the total membrane conductance. At rest, when `tau_V_inv` is small (~g_leak/C \u2248 0.1 ms\u207b\u00b9), the effective noise amplitude is amplified by ~10x compared to its nominal value. During spikes, when `tau_V_inv` is large, noise is strongly suppressed. This produces a resting-potential variance and kurtosis that are very different from a constant-amplitude noise process, biasing the std, variance, skewness, and kurtosis summary statistics that the model is evaluated on.",
+      "severity": "critical",
+      "location": "V_inf computation inside the for loop, line: `V_inf = (... + noise / (tstep ** 0.5)) / (tau_V_inv * C)`",
+      "suggestion": "Move the noise injection outside the V_inf / tau_V_inv division. Instead, add the noise directly to the voltage update after the exponential Euler step: `V[:, i] = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv) + nois_fact * torch.randn(...) * (tstep**0.5) / C`. This gives a fixed, conductance-independent noise amplitude per time step (Euler-Maruyama on dV = f(V)dt + sigma*dW), correctly reproducing the experimental resting-potential variance without amplification artefacts."
+    },
+    {
+      "description": "The X2 channel slot (params[:,8] and params[:,9]) is left entirely unused. With only the M-current, the model has limited ability to independently shape the spike afterhyperpolarization depth and the inter-spike interval distribution. A slow Ca\u00b2\u207a-activated K\u207a current (SK-type: I_SK = gbar_SK * z * (V - E_K), with Ca\u00b2\u207a-proxy gating dz/dt = (z_inf(V) - z) / tau_SK, z_inf = 1/(1+exp(-(V+40)/5))) using params[:,8] as gbar_SK and params[:,9] as tau_SK would provide independent control of AHP depth versus adaptation rate, giving the posterior better ability to simultaneously match spike count, mean voltage, and variance statistics without disturbing the M-current's threshold-adaptation role.",
+      "severity": "major",
+      "location": "Channel slot X2 (params[:,8], params[:,9]) \u2014 currently unused",
+      "suggestion": "Implement a minimal SK-like current in slot X2: add a gating variable `q` with `q_inf(V) = 1/(1 + exp(-(V+40)/5))`, `tau_SK = params[:,9] + 1e-3` (ms), `gbar_SK = params[:,8]` (mS/cm\u00b2), and current `I_SK = gbar_SK * q * (V - E_K)`. Include it symmetrically in both `tau_V_inv` and `V_inf` (same pattern as the M-current). This adds a faster AHP component that separates spike-count tuning from inter-spike voltage statistics, directly targeting the remaining mismatch in mean voltage during stimulation and variance/skewness metrics."
+    }
+  ]
+}

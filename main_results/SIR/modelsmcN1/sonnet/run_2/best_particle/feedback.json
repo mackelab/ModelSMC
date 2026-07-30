@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Iter37 NLE=-602 is catastrophically worse than Iter36 (-415) and far from best-ever Iter16/18 (-52.5/-45.3). Simultaneous narrowing of BOTH \u03b2\u2208(0.15,0.50) and \u03b3\u2208(0.05,0.15) has over-constrained the parameter space and likely excludes the true parameter values. The \u03b3 ceiling at 0.15 (1/\u03b3\u22656.7 days minimum) and \u03b2 floor at 0.15 are the primary culprits \u2014 these boundaries prevent SBI from finding the correct posterior. The correct strategy is to moderately widen \u03b3 (restore plausible COVID range up to 0.20) and lower the \u03b2 floor back to 0.10 while retaining the 0.50 cap. Only ONE range should be changed per iteration to isolate causal effects.",
+  "issues": [
+    {
+      "description": "\u03b3 range (0.05, 0.15) is too narrow and likely excludes the true recovery rate. Iter36 with \u03b3\u2208(0.04,0.29) gave NLE=-415; Iter37 with \u03b3\u2208(0.05,0.15) gave NLE=-602 \u2014 narrowing WORSENED performance, meaning the true \u03b3 is likely above 0.15. COVID-19 infectious periods of 5-10 days correspond to \u03b3=0.10-0.20 [1/day], so the ceiling of 0.15 blocks SBI from finding faster-recovery scenarios. A moderate ceiling of 0.20 covers the full clinically-observed COVID-19 infectious period range without being as permissive as Iter36's 0.29.",
+      "severity": "critical",
+      "location": "forward() \u2014 \u03b3 parameterization line: gamma = float(0.05 + 0.10 * sig_gamma)",
+      "suggestion": "Change \u03b3 parameterization to: gamma = float(0.04 + 0.16 * sig_gamma) giving \u03b3\u2208(0.04, 0.20) [1/day], corresponding to infectious periods 1/\u03b3\u2208(5, 25) days. At init raw_gamma=0.0: \u03b3=0.04+0.16\u00d70.5=0.12 [1/day], R0=\u03b2/\u03b3=0.325/0.12\u22482.7. This is one targeted change only \u2014 do NOT also change \u03b2 in the same iteration."
+    },
+    {
+      "description": "\u03b2 floor raised to 0.15 excludes lower but epidemiologically valid transmission rates. Iter34 used \u03b2\u2208(0.05,0.70) and achieved NLE=-228; Iter36 used \u03b2\u2208(0.10,0.60) and achieved NLE=-415; Iter37 raised floor to \u03b2=0.15 giving NLE=-602. The monotonic degradation as the \u03b2 floor rises strongly suggests the true \u03b2 may be near or below 0.15. The \u03b2 lower bound should return to 0.10 to allow SBI to explore the sub-0.15 region while retaining the 0.50 ceiling.",
+      "severity": "major",
+      "location": "forward() \u2014 \u03b2 parameterization line: beta = float(0.15 + 0.35 * sig_beta)",
+      "suggestion": "After fixing \u03b3 first and measuring NLE, if still degraded: change \u03b2 to beta = float(0.10 + 0.40 * sig_beta) giving \u03b2\u2208(0.10, 0.50) [1/day]. At init: \u03b2=0.10+0.40\u00d70.5=0.30 [1/day]. This restores the lower bound to 0.10 (matching Iter36 which was better than Iter37) while keeping the 0.50 cap. Apply as a SEPARATE iteration from the \u03b3 fix to isolate causal effects."
+    }
+  ]
+}

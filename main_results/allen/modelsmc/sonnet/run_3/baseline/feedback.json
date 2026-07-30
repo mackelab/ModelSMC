@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator extracts four additional parameters (gbar_X1, gbar_X2, param_i, param_j) but never implements or uses them anywhere in the simulation dynamics. All editable sections remain empty, so the model is running as a plain base HH model with 4 of 10 parameters completely unused. This explains the poor NLE score\u2014the optimizer cannot fit the extra degrees of freedom because they have zero effect on voltage.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never referenced in any kinetics, state-variable initialization, time-constant, or voltage-update computation. The model is effectively a 6-parameter HH with 4 dead parameters, making inference ill-posed and the fit poor.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks in the forward() method",
+      "suggestion": "Implement a slow, non-inactivating M-type potassium current (IKm) using gbar_X1 as its conductance (E_K as reversal). Add a single gating variable p with sigmoid steady state p_inf = 1/(1+exp(-(V - param_i)/10)) and time constant tau_p = param_j/(3.3*exp((V-param_i)/40)+exp(-(V-param_i)/20)). Initialize p[:,0] = p_inf(V[:,0]). In the loop compute p's alpha/beta or directly update p via Euler: p[:,i] = p_inf + (p[:,i-1]-p_inf)*exp(-dt/tau_p). Add gbar_X1*p[:,i-1]*(V[:,i-1]-E_K) to tau_V_inv and the corresponding gbar_X1*p[:,i-1]*E_K term to V_inf's numerator. This M-current governs regular tonic firing rate adaptation without bursting, matching the described data characteristics."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (param_i = -params[:,8], param_j = -params[:,9]) but their ranges are described as positive [1e-4, 150] and [1e-4, 3000]. This sign flip means the optimizer must learn negative internal representations to produce biologically meaningful positive half-activation voltages and time constants, which hampers convergence.",
+      "severity": "major",
+      "location": "Lines: param_i = -params[:, 8].float() and param_j = -params[:, 9].float()",
+      "suggestion": "Remove the negation: use param_i = params[:, 8].float() and param_j = params[:, 9].float() so that positive inferred values map directly to positive half-activation voltage offsets (e.g., ~-30 to -20 mV relative to Vt, achieved by subtracting a fixed baseline) and positive time constants. Alternatively, encode them as param_i = Vt - params[:,8] for a subthreshold half-activation, which keeps the optimizer in a physically meaningful positive range."
+    }
+  ]
+}

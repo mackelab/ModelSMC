@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered) as integers; N = S+I+R strictly conserved across every step
+- **S → I**: β = 0.02 + 0.63·σ(parameters[0]) ∈ (0.02, 0.65) day⁻¹; init raw_beta=0.205 (iter-116 candidate; ultra-fine probe in unexplored gap (0.20, 0.21)) → β≈0.3652 day^-1; foi = β·I/N; p_inf = 1−exp(−foi)
+- **I → R**: γ = 0.02 + 0.18·σ(parameters[1]) ∈ (0.02, 0.20) day⁻¹; init raw_gamma=0.2 (CONFIRMED GLOBAL BEST, permanently locked) → γ≈0.1190 day^-1; p_rec = 1−exp(−γ)
+- **Stochasticity**: pure Binomial draws; new_infections~Bin(S, p_inf); new_recoveries~Bin(I_pre, p_rec); I≤0 bare early-return with zero rng draws
+- **Assumptions**: discrete-time dt=1 day SIR; simultaneous pre-step draws; no births/deaths; N conserved; R0≈3.07; raw_gamma=0.2 permanently locked; raw_beta=0.205 is ultra-fine unexplored midpoint step above confirmed best 0.20; `1-exp(-x)` form locked

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The second additional ion channel (params[:, 7], labeled gbar_X2) is entirely unused, meaning one complete conductance is missing from the membrane current. This omission alone accounts for a systematic bias in the simulated voltage traces and is the primary driver of the high neg_avg_log_marginal_NLE (~26.4). A second slow channel (e.g., I_h or I_T) must be added using params[:, 7] as its maximal conductance.",
+  "issues": [
+    {
+      "description": "params[:, 7] (gbar_X2, the second extra channel conductance) is declared but immediately commented out and never used. This means the simulator is structurally missing one ion channel that the experimental data was generated with, causing persistent, systematic voltage discrepancies that no amount of parameter optimisation can correct.",
+      "severity": "critical",
+      "location": "Parameter extraction block: '# gbar_X2 unused (second channel not needed)'",
+      "suggestion": "Uncomment and implement the second channel. Extract `gbar_X2 = params[:, 7].float()` and add a corresponding current. A natural choice (consistent with the kinetic parameters already encoded in params[:, 8-9]) is a second slow K+ or cation channel (e.g., I_h or a T-type Ca2+ current). For a minimal fix, implement it with kinetics analogous to the M-current but with a distinct sigmoid: `q_inf = 1/(1+exp(+(V-param_i)/10))` (reversed sign for hyperpolarisation-activation) and `tau_q = abs(param_j)/(3.3*exp(v1)+exp(-v1))`, add `g_X2_eff = q[:, i-1] * gbar_X2` to both `tau_V_inv` and `V_inf` (using reversal E_K or ~-45 mV for a mixed current), and integrate `q` with exponential-Euler alongside `p`."
+    },
+    {
+      "description": "param_i and param_j are computed as the *negation* of params[:, 8] and params[:, 9] whose documented ranges are [1e-4, 150] and [1e-4, 3000]. This forces param_i into [-150, ~0] mV. For the M-current the canonical half-activation is around -35 mV, so the negation is appropriate only if the inference has already learned to compensate; however, once the second channel is added and shares these parameters with different polarity requirements, the sign convention will conflict.",
+      "severity": "major",
+      "location": "param_i = -params[:, 8].float() and param_j = -params[:, 9].float()",
+      "suggestion": "Give the second channel its own independent kinetic parameters, or verify that params[:, 8-9] are intended to be shared with consistent sign. If each extra channel should have its own half-activation voltage and time-constant, consider re-partitioning: use params[:, 8] (possibly negated) for the M-current half-activation and params[:, 9] (or another index) for the second channel, rather than sharing param_i/param_j across both channels."
+    }
+  ]
+}

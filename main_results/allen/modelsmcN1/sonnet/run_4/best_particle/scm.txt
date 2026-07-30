@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, I_A (X1), I_SK (X2); E_Na=53 mV, E_K=-107 mV FIXED; noise inside V_inf numerator — proven iter 4 formulation unchanged
+- **m, h** (Na⁺ gates), **n** (K⁺ DR gate): standard Traub HH kinetics unchanged all 54 iterations
+- **a, b** (I_A gates, X1): ALL kinetics FIXED (V_half_a=-40, k_a=5, tau_a=1, V_half_b=-82, k_b=6, tau_b=20 ms, E_A=E_K=-107 mV); only gbar_A=params[:,6] inferred — iter 4 proven optimal
+- **Ca** (Ca²⁺ proxy), **I_SK** (X2 iter 54 moderate fix): alpha_Ca=0.010 (5× from 0.002, NOT 20×), K_d=0.18 → sk_act_spike≈0.155 (functional, non-saturating); Ca_ss_rest≈6e-4 → sk_act_rest≈1e-5 (zero resting artifact); sk_act uses Ca[:,i-1] (reverted Fix 2 from iter 53 per feedback); gbar_SK=params[:,7] only inferred X2 param
+- **Core assumptions**: iter 53 overcorrected alpha_Ca 20× (0.002→0.04) + K_d halved → sk_act_spike≈0.73 saturating → NLE catastrophe 26.6→31.6; iter 54 moderate 5× correction keeps channel identifiable; all SK kinetic params fixed; params[:,8-9] UNUSED

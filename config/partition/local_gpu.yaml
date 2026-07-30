@@ -1,0 +1,11 @@
+# @package _global_
+# Partition config for running locally on an interactive GPU node (no Slurm submission).
+# Sets hydra.launcher resource hints so that SMCEngine initialises Ray with the
+# correct GPU/CPU counts (smc_method.py reads hc.launcher.gpus_per_task and
+# hc.launcher.cpus_per_task to pass to ray.init).
+
+hydra:
+  launcher:
+    gpus_per_node: 1
+    cpus_per_task: 4
+    mem_gb: 32

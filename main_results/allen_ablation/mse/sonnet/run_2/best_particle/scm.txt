@@ -1,0 +1,5 @@
+- **Endogenous variables**: V (membrane potential), m/h (Na⁺ gates), n (K⁺ gate), w (M-current gate)
+- **Exogenous inputs**: I_inj(t), Gaussian noise scaled by nois_fact
+- **Causal structure**: I_inj → V ← {I_Na(m,h), I_K(n), I_leak, I_M(w)}; each gate ← V
+- **M-current**: Slow non-inactivating K⁺ channel; w_inf(V) sigmoid with half-activation param_i offset, time constant param_j (ms)
+- **Core assumption**: Tonic firing; M-current provides adaptation and AHP shaping without burst induction

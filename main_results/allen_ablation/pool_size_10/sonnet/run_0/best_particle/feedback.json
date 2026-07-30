@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current channel spans three parameters (params[6], params[8], params[9]) across both X1 and X2 slots with params[7] left unused. This misalignment breaks the inference framework's parameter mapping: the sampler treats params[6,7] as X1 and params[8,9] as X2, so V_half_M and tau_M are being inferred under the wrong priors and gbar_X2 is silently wasted. This structural mismatch is the primary driver of the high neg_avg_log_marginal_NLE (~26.3) because the posterior over params[8,9] is being searched as an unrelated second channel while actually controlling the M-current half-activation and time constant.",
+  "issues": [
+    {
+      "description": "M-current uses three inferred parameters (gbar_M=params[6], V_half_M=-params[8], tau_M=params[9]) spanning both X1 (indices 6,7) and X2 (indices 8,9) slots, leaving params[7] unused. The inference framework assigns prior support to each slot independently, so this cross-slot assignment creates a misspecified parameter mapping. V_half_M and tau_M are inferred with the wrong prior ranges, and the second slot is wasted on a ghost channel.",
+      "severity": "critical",
+      "location": "Parameter extraction block, lines: `gbar_M = params[:, 6]`, `V_half_M = -params[:, 8]`, `tau_M = params[:, 9]`",
+      "suggestion": "Consolidate the M-current entirely within X1 (params[6,7]): set `gbar_M = params[:, 6]` and `tau_M = params[:, 7].clamp(min=1.0)`, then fix V_half_M to a canonical physiological value (e.g., `V_half_M = -35.0` mV as a scalar constant). If a second channel is needed, place it cleanly in X2 (params[8,9]). This restores correct prior coverage for both inferred parameters and eliminates the phantom third parameter."
+    },
+    {
+      "description": "The additive noise term is injected into V_inf (the exponential-Euler 'rest point') rather than added directly to the voltage update. This means the noise contribution is modulated by the factor `(1 - exp(-dt * tau_V_inv))`, which varies dramatically between the resting state (slow tau) and the spike upstroke (fast tau). During spikes the effective noise magnitude collapses, while at rest it is amplified relative to what a standard Euler current-injection formulation would produce. This distorts the resting-potential variance and spike-timing statistics.",
+      "severity": "major",
+      "location": "V_inf numerator: `+ noise_term` inside the division by `(tau_V_inv * C)`",
+      "suggestion": "Add noise directly to the voltage after the exponential-Euler step: `V[:, i] = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv) + nois_fact * torch.randn(...) * (tstep**0.5)`. This correctly injects a Wiener-process increment as a current perturbation that is independent of membrane conductance state, matching standard stochastic HH practice and producing well-calibrated resting-potential std and voltage variance statistics."
+    }
+  ]
+}

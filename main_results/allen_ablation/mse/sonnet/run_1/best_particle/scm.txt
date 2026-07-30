@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺ (m³h), K⁺ (n⁴), leak, M-current (w), noise, and I_inj
+- **m, h** (Na⁺ activation/inactivation): standard Vt-shifted HH alpha/beta kinetics
+- **n** (K⁺ delayed-rectifier activation): standard Vt-shifted HH alpha/beta kinetics
+- **w** (M-current slow K⁺ gate): non-inactivating; gbar_M=params[:,6], V_half_M=sigmoid-remapped params[:,7] → [-50,-20] mV, tau_w=sigmoid-remapped params[:,9] → (10,300) ms
+- **Key assumptions**: tonic spiking; sigmoid remapping of V_half_M and tau_w ensures gradient flow throughout prior; M-current shapes AHP and spike-count without bursting

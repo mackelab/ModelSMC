@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The score collapsed from -257 (iter 29, Beta-Binomial kappa=4) to -452 (iter 30, direct Binomial) \u2014 the opposite of the predicted improvement. The root cause is almost certainly the default parameters: beta=0.20, gamma=0.15 give R0\u22481.33, far below COVID-19's empirically documented R0 of 2\u20134. SBI fits a posterior centered near the prior, so a prior centered at R0\u22481.33 diverges strongly from the observed trajectories (which were generated under higher R0), collapsing the marginal likelihood. The secondary issue is that the widened bounds [0.01, 0.50] for beta with a poor central default create an extremely diffuse effective prior, making SBI evidence estimation slow to converge and producing poor marginal NLE estimates across the 60-step trajectory.",
+  "issues": [
+    {
+      "description": "Default parameters beta=0.20, gamma=0.15 (R0\u22481.33, infectious period\u22486.7 days) are far below COVID-19 baselines (R0\u22482\u20134, infectious period\u22487\u201314 days). SBI uses the simulator's prior to learn the posterior; a prior centered near sub-epidemic R0 values causes the SBI posterior to be systematically biased away from the true generating parameters. Over 60 time steps, this mismatch between prior-centered trajectories and observed data produces catastrophically low marginal likelihoods (-452). This alone can explain the regression from all prior iterations.",
+      "severity": "critical",
+      "location": "SimulatorStep.__init__: self.parameters = np.array([0.20, 0.15])",
+      "suggestion": "Set self.parameters = np.array([0.30, 0.10]) giving R0=3.0 and infectious period=10 days, which is squarely within the COVID-19 empirical range. Also tighten beta bounds to [0.08, 0.60] and gamma bounds to [0.05, 0.25] in forward() to focus SBI's prior mass on COVID-realistic regions: `beta = np.clip(parameters[0], 0.08, 0.60)` and `gamma = np.clip(parameters[1], 0.05, 0.25)`."
+    },
+    {
+      "description": "Removing the Beta-Binomial worsened the score (-452 vs -257), contradicting the hypothesis that direct Binomial would recover iter-13's -5.92. This indicates the COVID transmission process exhibits genuine overdispersion beyond Binomial (super-spreading, household clustering), and the Beta-Binomial structure captures this signal. However, kappa=4.0 was too diffuse. A high-concentration Beta-Binomial (kappa\u224830\u2013100) preserves slight overdispersion while remaining nearly Binomial, potentially recovering the near-Binomial behavior of iter-13 without the catastrophic variance of kappa=4.",
+      "severity": "major",
+      "location": "SimulatorStep.forward: new_infections = int(rng.binomial(n=S, p=float(p_inf_safe)))",
+      "suggestion": "Reintroduce Beta-Binomial with a large, fixed kappa (e.g., kappa=50): `alpha_bb = p_inf_safe * kappa; beta_bb = (1.0 - p_inf_safe) * kappa; p_draw = float(np.clip(rng.beta(alpha_bb, beta_bb), 1e-9, 1-1e-9)); new_infections = int(rng.binomial(n=S, p=p_draw))` where kappa=50. This is nearly indistinguishable from Binomial for most steps but allows marginal overdispersion that better matches COVID's stochastic transmission, and avoids the degeneracy of kappa=4."
+    }
+  ]
+}

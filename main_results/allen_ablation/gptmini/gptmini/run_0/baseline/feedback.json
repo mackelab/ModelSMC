@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Numerical overflow / invalid numeric values (Inf / too-large) arise during the simulator forward pass. The immediate causes are unbounded exponentials in Exp/efun and several questionable sign/negation and range assumptions in parameter extraction (E_leak, Vt, param_i/param_j, conductances). These produce extremely large arguments to torch.exp or divide-by-zero / near-zero denominators, which ultimately produce infinities that break downstream metrics computation.",
+  "issues": [
+    {
+      "description": "Unbounded exponentials and unstable efun implementation allow torch.exp to receive very large positive inputs, producing Inf/NaN in intermediate arrays (alpha/beta/tau/inf calculations). The current Exp only clips large negative z but does not bound large positive z; efun also subtracts 1 from potentially enormous exponentials which is numerically unstable.",
+      "severity": "critical",
+      "location": "Exp / efun definitions (kinetics section)",
+      "suggestion": "Make the exponential computation numerically safe by clamping z to a finite range before calling exp (e.g. clamp to [-500, 500]) and protect the efun denominator. Example fixes:\n- Replace Exp(z) with: z_clamped = torch.clamp(z, min=-500.0, max=500.0); return torch.exp(z_clamped)\n- Implement efun safely: e = Exp(z); safe_denom = torch.where(torch.abs(e - 1.0) < 1e-12, 1.0, (e - 1.0)); return torch.where(torch.abs(z) < 1e-4, 1 - z / 2.0, z / safe_denom)\n- Optionally apply torch.nan_to_num on intermediate results or assert that key arrays are finite. These changes prevent overflow and the creation of Inf/NaN values."
+    },
+    {
+      "description": "Parameter sign errors and missing clamps allow unreasonable parameter values (very large magnitudes, negative conductances, zero denominators). Examples in the parameter extraction: E_leak = -params[:,3], Vt = -params[:,4], param_i/param_j are negated; conductances and taus are not clamped/guarded, which can produce tau_V_inv==0 or extremely large tau values and hence Inf when dividing.",
+      "severity": "major",
+      "location": "Parameter extraction and usage (top of forward + tau_V_inv / V_inf computations)",
+      "suggestion": "Validate and sanitize parameters on entry and enforce safe ranges:\n- Remove accidental negations if they are incorrect (e.g. use E_leak = params[:,3] unless the data encoding requires negation). Review Vt and param_i/param_j negations.\n- Enforce positivity and finite bounds for conductances: gbar = torch.clamp(gbar, min=1e-8, max=1e4) (choose domain-appropriate max).\n- Protect divisors with a small epsilon: tau_V_inv = (...) / C; when used in denominators ensure you do denom = torch.clamp(tau_V_inv * C, min=1e-12) before division.\n- After parsing params, call params = torch.nan_to_num(params, nan=0.0, posinf=1e20, neginf=-1e20) or raise a clear error with a helpful message if values are outside expected ranges.\n- Add unit tests/assertions that parameters are finite and within expected ranges before running the simulation.\nThese changes will prevent runaway numerics and make failures easier to debug."
+    }
+  ]
+}

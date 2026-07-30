@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The extracted channel parameters gbar_X1, gbar_X2, param_i, and param_j are defined but never used anywhere in the simulation. The tau_V_inv and V_inf computations, state variable arrays, and the simulation loop all completely omit any X1/X2 channel contribution. These tunable parameters are entirely inert, so the model is functionally identical to a bare 3-variable HH model regardless of what the inference engine proposes for those parameters. This is the dominant source of the high NLE (~26.2). Adding an M-current (slow voltage-gated K\u207a, single gating variable p) using gbar_X1, param_i as half-activation voltage, and param_j as a time-constant scale would give the model the extra degree of freedom needed to reproduce regular tonic spiking spacing and resting-potential statistics without introducing bursting.",
+  "issues": [
+    {
+      "description": "gbar_X1, param_i, and param_j are extracted from params but never wired into the simulation: no kinetics functions, no state variable p, no initialization of p[:,0], no update of p[:,i] in the loop, and no contribution to tau_V_inv or V_inf. The channel literally does nothing.",
+      "severity": "critical",
+      "location": "Simulation loop \u2014 tau_V_inv and V_inf expressions; state variable declarations; initialization block; per-step update block",
+      "suggestion": "Implement a slow M-type K\u207a current using gbar_X1 (conductance) and param_i (half-activation voltage, already negated) as follows. (1) Add kinetics: `def p_inf(x): return 1.0/(1.0+Exp(-(x-param_i)/10.0))` and `def tau_p(x): return torch.clamp(torch.abs(param_j)/(3.3*(Exp((x-param_i)/40)+Exp(-(x-param_i)/20))), min=1.0)`. (2) Declare `p = torch.zeros((batch_size, time_steps), device=device)` and initialise `p[:,0] = p_inf(V[:,0])`. (3) In the loop compute `p[:,i] = p_inf(V[:,i-1]) + (p[:,i-1]-p_inf(V[:,i-1]))*Exp(-tstep/tau_p(V[:,i-1]))`. (4) Add `+ gbar_X1 * p[:,i-1]` to tau_V_inv (\u00f7C) and `+ gbar_X1 * p[:,i-1] * E_K` to V_inf (before the \u00f7(tau_V_inv*C) line). E_K is already defined. This uses only the X1 slot; leave X2 unused unless further improvement is needed."
+    },
+    {
+      "description": "param_j is negated (`param_j = -params[:,9]`) and its raw range spans up to \u22123000, but it is never clamped before use as a time-constant denominator scale. If param_j approaches zero or is very small the tau_p denominator can explode or underflow, causing NaN voltages.",
+      "severity": "major",
+      "location": "param_j extraction line and the proposed tau_p function",
+      "suggestion": "After extracting param_j, add a floor: `param_j = torch.clamp(-params[:,9].float(), min=1.0)` (drop the leading minus since you want a positive scale). Then inside tau_p use `param_j / (3.3*(Exp(...)+Exp(...)))` with an additional `torch.clamp(..., min=1.0, max=500.0)` on the final result to prevent numerical blow-up during early inference iterations when parameters are far from their optimal values."
+    }
+  ]
+}

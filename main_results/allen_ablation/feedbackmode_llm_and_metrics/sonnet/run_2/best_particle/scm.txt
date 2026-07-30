@@ -1,0 +1,5 @@
+- **V**: membrane potential driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h**: fast Na⁺ activation/inactivation gates (voltage-dependent first-order kinetics)
+- **n**: delayed-rectifier K⁺ activation gate (voltage-dependent first-order kinetics)
+- **p_km**: slow M-type K⁺ (KCNQ/Kv7) activation gate; gbar_Km=params[6], V_half from params[8], tau from params[9]
+- **Key assumption**: M-current provides inter-spike hyperpolarisation that regularises tonic spiking without inducing bursting; X2 slot (params[7]) left unused for parsimony

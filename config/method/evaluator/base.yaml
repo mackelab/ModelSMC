@@ -1,0 +1,24 @@
+# Evaluator configuration - only evaluator-specific parameters
+
+defaults:
+  - likelihood_estimator: NLE_PFN  # options: NLE, NLE_PFN
+
+# Likelihood estimation settings (used when learnable_summary_statistics is False)
+n_samples_evidence_estimation: 200
+prior_sampling_fallback_factor: 10  # Factor by which to increase the number of samples for prior sampling fallback
+evidence_estimation_mode: prior_samples  # options: prior_samples, posterior_samples
+sampling_timeout: 60  # Timeout in seconds for posterior sampling in evidence computation (per observation)
+bs_marginals: null  # Batch size for marginal computation, null = no batching
+
+# Plotting for evaluator-specific plots (posterior plots, etc.)
+plotting: True
+
+# Posterior quantile analysis (used when posterior samples are available from optimizers)
+inter_quantile_range:
+  - 0.99
+  - 0.9
+  - 0.75
+  - 0.5
+  - 0.25
+  - 0.1
+  - 0.01

@@ -1,0 +1,5 @@
+- **S, I, R**: Susceptible, Infected, Recovered integer compartments; N = S+I+R is conserved
+- **beta** (parameters[0]): transmission rate ∈ (0, 5]; force-of-infection λ = β·I/N applied to S→I
+- **gamma** (parameters[1]): daily recovery probability ∈ (0, 1); governs I→R flow
+- **new_infections** ~ Binomial(S, 1−exp(−β·I/N)); **new_recoveries** ~ Binomial(I, 1−exp(−γ))
+- Assumptions: closed homogeneous-mixing population, no births/deaths, discrete-time stochastic transitions

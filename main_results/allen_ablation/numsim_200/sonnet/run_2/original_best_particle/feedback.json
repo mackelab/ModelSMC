@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current activation time constant `tau_p = -params[:, 9]` is negated, producing a negative time constant whenever `params[:, 9] > 0`. This causes the exponential Euler decay factor `Exp(-dt / tau_p)` to be greater than 1, making the `p` gating variable grow exponentially away from its steady state instead of relaxing toward it. The resulting numerical divergence in `p` propagates into incorrect voltage dynamics, likely the dominant source of the high neg_avg_log_marginal_NLE (24.4).",
+  "issues": [
+    {
+      "description": "Negative M-current time constant: `tau_p = -params[:, 9].float()` inverts the sign of the inferred parameter. If the prior places `params[:, 9]` in positive territory (which is expected for a time constant), `tau_p` becomes negative. The exponential Euler update `Exp(-tstep / tau_p)` then evaluates to a value >1 for every time step, causing the p gating variable to diverge rather than relax to `p_inf`. This invalidates the entire M-current contribution and destabilises the membrane voltage trace.",
+      "severity": "critical",
+      "location": "Parameter extraction block: `tau_p = -params[:, 9].float()`",
+      "suggestion": "Remove the negation: use `tau_p = torch.clamp(params[:, 9].float(), min=1e-2)` to ensure a strictly positive time constant. If the prior was intentionally defined over negative values to encode positivity via negation, verify the prior specification matches and add a `torch.abs()` guard: `tau_p = torch.clamp(torch.abs(params[:, 9].float()), min=1e-2)`. A canonical M-current tau of ~100\u2013300 ms should be achievable with a log-normal or half-normal prior on `params[:, 9]` without any sign flip."
+    },
+    {
+      "description": "M-current half-activation voltage `V_half_p = -params[:, 8]` may place activation far outside the physiological range. If `params[:, 8]` is inferred in a range like [0, 150], `V_half_p` would span [-150, 0] mV, making `p_inf` nearly 1 at all sub-threshold voltages and turning the M-current into a large tonically active conductance rather than a voltage-gated adapting current. This would strongly shift the resting potential and spike statistics away from the data.",
+      "severity": "major",
+      "location": "Parameter extraction block: `V_half_p = -params[:, 8].float()`",
+      "suggestion": "Confirm the prior for `params[:, 8]` is centred near +35 so that `V_half_p \u2248 -35 mV` after negation (the canonical M-current half-activation). If the prior is not constrained this way, use `params[:, 8]` directly (without negation) and define the prior over [-60, -20] mV to keep `p_inf` near zero at rest and activating only near threshold. Alternatively, add a clamp: `V_half_p = torch.clamp(-params[:, 8].float(), min=-60.0, max=-10.0)` to guard against out-of-range values."
+    }
+  ]
+}

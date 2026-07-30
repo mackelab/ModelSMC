@@ -1,0 +1,5 @@
+- **Variables**: V (membrane potential), m/h (Na⁺ gating), n (K⁺-DR gating), p (M-current gating)
+- **Na⁺**: fast activation m³h → E_Na = +53 mV; K⁺-DR: n⁴ gating → E_K = −107 mV
+- **M-current (IKs/KCNQ)**: slow non-inactivating K⁺, single Boltzmann gate p; V_half = −param_i mV (param_i > 0); τ_p clamped to [10, 500] ms via param_j for identifiable inference
+- **Key fix this iteration**: τ_p clamped to physiological range [10, 500] ms prevents gate from freezing (param_j → large) or becoming instantaneous (param_j → 0), collapsing gradients
+- **Assumptions**: C = 1 µF/cm², param_i/param_j NOT negated (corrects base code bug), batch-parallel exponential Euler

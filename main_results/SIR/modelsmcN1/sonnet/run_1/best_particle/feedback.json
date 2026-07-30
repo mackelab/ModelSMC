@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The Binomial (zero-overdispersion) formulation is catastrophically too tight at epidemic scales, producing NLE\u2248-612 versus the NegBin K=0.10 run at NLE\u2248-102. At large N, Binomial variance np(1-p) is negligible relative to actual trajectory variability from model misspecification. The fundamental root cause is that a pure SIR model is structurally wrong for COVID-19: COVID has a clinically established 5\u20136 day latent/exposed period that causes the epidemic peak to be delayed and broadened compared to SIR predictions. The missing E compartment in the forward model creates systematic shape mismatch that the Binomial's tight distribution cannot absorb, driving the NLE extremely negative. Switching to SEIR with moderate NegBinomial overdispersion (K\u22485\u201315) is required to simultaneously fix structural model error and allow the SBI likelihood to remain tractable.",
+  "issues": [
+    {
+      "description": "Pure SIR model is structurally incorrect for COVID-19. COVID has a 5\u20136 day exposed/latent period (E compartment) before individuals become infectious. Without E, the SIR model produces an epidemic curve with wrong timing, shape, and peak height, creating systematic residuals that no amount of parameter tuning can fix. This structural mismatch is the dominant cause of NLE\u2248-612 \u2014 the Binomial assigns near-zero probability to trajectories shifted by even a few days from the SIR deterministic path.",
+      "severity": "critical",
+      "location": "forward() \u2014 missing SEIR compartment structure; state dict has only S, I, R",
+      "suggestion": "Extend to SEIR: add E (exposed) compartment with sigma (1/latent_period) \u2208 (0.10, 0.25) corresponding to 4\u201310 day latent period. Transitions: S\u2192E via Binomial(S, p_inf), E\u2192I via Binomial(E, p_exp) where p_exp=1-exp(-sigma), I\u2192R via Binomial(I, p_rec). Add sigma as a third optimisable parameter or fix at sigma=1/5.5\u22480.18 (COVID median). The state dict must be extended to include 'E'. This alone should substantially reduce NLE by correcting the epidemic curve shape."
+    },
+    {
+      "description": "Binomial draws (K\u2192\u221e) are far too tight for SBI at epidemic scales. When N is large (e.g., 10^4\u201310^6), Binomial std\u2248sqrt(Np) is tiny relative to observed inter-trajectory variability caused by model misspecification, real-world heterogeneity, and behavioural changes. The previous NegBin K=0.10 run achieving NLE\u2248-102 confirms that overdispersion is required for tractable SBI likelihoods, even if K=0.10 is too extreme. The Binomial effectively gives -\u221e likelihood to any observed trajectory that deviates by more than ~2 std from the deterministic path.",
+      "severity": "major",
+      "location": "forward() \u2014 rng.binomial() calls for new_inf and new_rec",
+      "suggestion": "Replace Binomial draws with NegativeBinomial(mu, K) where K\u2208[5,20] (moderate overdispersion). Use rng.negative_binomial(n=K, p=K/(K+mu)) clipped to [0, S] for infections and [0, I] for recoveries. This gives Var=mu+mu\u00b2/K \u2014 significantly wider than Binomial but not as extreme as K=0.10. A good starting point is K=10 as a fixed hyperparameter, or make log(K) a third SBI parameter in range log(2) to log(50). This allows the SBI posterior to assign non-negligible probability to trajectories that deviate from the mean path due to real-world stochasticity and model approximation error."
+    }
+  ]
+}

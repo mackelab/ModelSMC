@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current implementation mis-allocates the four available free parameters: params[:,7] (X1 slot's second parameter) is entirely unused/wasted, while V_half and tau_max of the M-current incorrectly occupy both parameters of the X2 slot. This leaves only 3 of 4 tunable parameters active and forfeits the opportunity to implement a second independent channel in slot X2. The resulting under-parameterisation explains the persistently high NLE (25.6), as a single adaptation current cannot simultaneously correct spike count, resting potential, and the voltage distribution statistics (variance, skewness, kurtosis).",
+  "issues": [
+    {
+      "description": "params[:,7] (the second parameter of slot X1) is declared but never used (commented out as 'gbar_X2 unused'). At the same time, V_half and tau_max \u2014 two kinetic parameters of the M-current \u2014 are assigned to the X2 slot (params[:,8] and params[:,9]). This conflates the M-current's internal kinetics with a second channel slot and wastes a free parameter, reducing fitting power from 4 to 3 effective parameters.",
+      "severity": "critical",
+      "location": "Lines extracting params[:,6..9]; comment '# gbar_X2 unused (kept for slot integrity)'",
+      "suggestion": "Redistribute the four free parameters cleanly across the two slots: assign gbar_M=params[:,6] and tau_max=params[:,7] to slot X1 (conductance + time-constant of M-current), and implement a second channel in slot X2 using params[:,8] and params[:,9]. A persistent sodium current (I_NaP: gbar_NaP=params[:,8], half-activation V_half_NaP=-params[:,9]) is a physiologically motivated choice \u2014 it shifts spike threshold, raises subthreshold depolarisation, and directly shapes mean resting potential, skewness, and spike count without introducing bursting. Fix the M-current sigmoid slope at 10 mV (no separate V_half inference needed) to free the slot-2 parameter for tau_max."
+    },
+    {
+      "description": "The sigmoid slope of the M-current steady-state (p_inf_M) is fixed at 10 mV and V_half is inferred via -params[:,8], tying up an entire channel slot on a single kinetic parameter whose default (\u2248-35 mV) already covers the physiologically relevant range. This leaves no room for a second channel in X2 and yields marginal improvement over the base HH model for statistics like kurtosis and spike-rate that require a depolarising counterbalance.",
+      "severity": "major",
+      "location": "p_inf_M definition and V_half = -params[:,8] extraction",
+      "suggestion": "Fix V_half at a physiologically reasonable constant (e.g., -35 mV) and remove it from the inferred parameter set. Use the freed X2 slot to implement a second channel (e.g., I_NaP with a Boltzmann steady-state m_inf_NaP = 1/(1+exp((-55-V)/5)) and instantaneous activation, scaled by gbar_NaP=params[:,8]). The second X2 parameter (params[:,9]) can tune the NaP half-activation or a slow inactivation time constant. This two-channel design directly targets the observed mismatch in mean stimulation voltage (statistic 4) and voltage skewness (statistic 6)."
+    }
+  ]
+}

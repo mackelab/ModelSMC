@@ -1,0 +1,145 @@
+system_description: |
+  # HODGKIN-HUXLEY NEURON SIMULATOR WITH MISSING ION CHANNELS
+
+  ## OBJECTIVE
+  Extend an existing Hodgkin-Huxley neuron simulator by identifying and implementing
+  missing ion channels necessary to reduce discrepancies between simulations and
+  experimental voltage recordings. The goal is to improve agreement across multiple
+  electrophysiological summary statistics while maintaining model parsimony.
+
+  ## BASE MODEL
+  Classic Hodgkin-Huxley formulation with standard three-gating-variable structure:
+  - **Leak current**: conductance g_leak, reversal potential E_leak
+  - **Sodium (Na⁺) current**: conductance gNa, gating variables m (activation) and h (inactivation), reversal E_Na
+  - **Potassium (K⁺) current**: conductance gK, gating variable n (activation), reversal E_K
+  - **Dynamics**: First-order gating kinetics with voltage-dependent time constants and steady states
+  - **Input**: Externally applied current I_inj(t) with optional stochastic components
+  - **Stochasticity**: Optional random seed for reproducible simulations
+
+  ## EXTENSIBILITY
+  Two pre-allocated channel slots (X1, X2) are available for additional mechanisms.
+  Each slot provides two tunable parameters (see signature_description for details).
+  Channels beyond these two slots must use fixed parameters, not inferred ones.
+
+  ## EVALUATION METRICS
+  Model performance assessed on held-out voltage recordings via these summary statistics:
+  1. Number of spikes during stimulation
+  2. Mean resting potential (pre-stimulation)
+  3. Standard deviation of resting potential
+  4. Mean voltage during stimulation
+  5. Variance of voltage
+  6. Skewness of voltage
+  7. Kurtosis of voltage
+
+  ## DATA CONTEXT
+  Intracellular voltage recordings from a single neuron exhibiting tonic spiking
+  behavior across different stimulus intensities.
+
+  **Important data characteristics**:
+  - No burst firing patterns (no clusters of rapid spikes separated by quiescence)
+  - No prolonged or sustained high-frequency firing (no sustained high-frequency firing)
+  - Regular, tonic spiking activity during periods of input current stimulation
+  - Non-spiking (quiescent) behavior in the absence of input current
+  - Evenly-spaced action potentials without burst patterns during the activation period
+
+  Therefore, avoid adding channels specifically designed to produce bursting or sustained
+  high-frequency dynamics.
+
+signature_description: |
+  ## INPUT DETAILS
+  - **init_voltage**: Initial membrane voltage (mV). Type: torch.Tensor: (batch_size,)
+  - **input_current**: Stimulation current (μA/cm²). Type: torch.Tensor, shape: (batch_size, time_steps)
+  - **dt**: Time step size (ms). Type: float
+  - **t**: Time array (ms). Type: torch.Tensor, shape: (time_steps,)
+  - **params**: Biophysical parameters. Type: torch.Tensor, shape: (batch_size, 10)
+  - **seed**: Random seed for stochastic behavior. Type: int or None
+
+  ## PARAMETER VECTOR STRUCTURE (batch_size, 10)
+  Index layout for params tensor:
+  ```
+  [0-2]   Base conductances: gbar_Na, gbar_K, g_leak (mS/cm²)
+  [3]     Leak reversal: |E_leak| (mV, sign applied internally)
+  [4]     Voltage threshold: |Vt| (mV, sign applied internally)
+  [5]     Noise factor: nois_fact (unitless)
+  [6-7]   Additional conductances: gbar_X1, gbar_X2 (mS/cm²)
+  [8-9]   Additional parameters: |param_i|, |param_j|
+  ```
+  (Note: gbar_X1, gbar_X2, param_i, param_j are not used in the current model and may be renamed to anything you want)
+
+  ## OUTPUT DETAILS
+  - **V**: Membrane potential (mV). Type: torch.Tensor, shape: (batch_size, time_steps)
+    - Simulated voltage traces for all batch elements
+    - Includes observation noise scaled by nois_fact_obs (currently 0.0)
+
+task_description: |
+  ## CORE TASK
+  Refine a Hodgkin-Huxley neuron simulator by discovering and implementing ion channels
+  or gating mechanisms missing from the current model but necessary to explain
+  discrepancies between simulated and experimental voltage data.
+
+  ## CRITICAL CONSTRAINTS
+
+  ### Parsimony Principle
+  - **Default stance**: Do NOT add channels unless data discrepancies clearly require them
+  - **Noise model**: Keep the current noise model as is, no change is needed
+  - **Prefer fewer channels**: A simpler model that explains the data is always superior
+  - **Stop when sufficient**: Cease adding channels once model adequately captures data
+
+  ### Channel Addition Strategy
+  - **Maximum capacity**: Up to two additional channels (X1, X2) can be used, but fewer is better
+  - **Add only what's needed**: You may add multiple channels if the data clearly justifies them, but start simple
+  - **Justify each addition**: Each channel must address specific discrepancies in the data
+  - **Workflow**:
+    1. Assess necessity: Which aspects of the data are not well-captured by the base model?
+    2. Identify mechanism(s): Which channel(s) could address these discrepancies?
+    3. Justify choices: Explain physiological rationale for each proposed channel
+    4. Implement: Add the minimal set of channels needed
+    5. Keep it simple: Prefer one well-designed channel over multiple complex ones
+    6. CRITICAL: Add at most ONE new ion channel per iteration. Use both tunable
+       parameter slots (param_i, param_j) for a single well-characterized channel
+       rather than splitting them across two channels. Multi-channel additions create
+       parameter identifiability problems that cause inference to fail.
+
+  ## IMPLEMENTATION REQUIREMENTS
+
+  ### Channel Design
+  - Use pre-allocated slots (X1, X2) with their two tunable parameters:
+    * Conductance (gbar_X1, gbar_X2)
+    * Flexible parameter (param_i, param_j) all in range [1e-4, 150] and [1e-4, 3000] respectively
+  - Keep mechanisms simple: prefer straightforward voltage dependencies
+  - Maintain biophysical realism: appropriate values for the flexible parameter
+
+  **Do NOT introduce channels or mechanisms that generate**:
+  - Burst firing (clusters of rapid spikes separated by quiescent periods)
+  - Bursting behavior or channels specifically designed to produce bursts
+  - Prolonged high-frequency firing or sustained rapid spiking patterns
+  - Mechanisms that suppress or prevent spiking behavior
+
+  Keep the channels as simple as possible following the existing code structure
+
+  ### Code Standards
+  - Maintain batch-wise PyTorch operations
+  - Ensure numerical stability across voltage ranges
+  - Preserve existing code structure
+  - Add detailed comments explaining physiological rationale
+  - Use voltage-dependent kinetics where appropriate
+  - Document all equations and parameter choices
+  - `torch.full_like(input, fill_value)` requires a tensor as the first argument, not a scalar float
+
+  ## DEVELOPMENT STRATEGY
+
+  1. **Analyze discrepancies**: Examine which summary statistics deviate most from experimental data
+  2. **Hypothesize mechanism(s)**: Propose channel(s) that could explain the discrepancies
+  3. **Literature support**: Reference known channel properties if applicable
+  4. **Implement conservatively**: Start with simplest formulation and fewest channels
+  5. **Test thoroughly**: Verify numerical stability and physiological plausibility
+  6. **Balance complexity vs. performance**: Add channels only when they meaningfully improve model fit
+
+  ## LEARNING FROM HISTORY
+  Incorporate insights from past attempts while avoiding direct code copying.
+  Always explain reasoning for design choices in code comments.
+
+  ## OUTPUT REQUIREMENTS
+  - Always return None for feedback field (feedback only used for past examples to get inspiration)
+  - Provide complete, functional simulator code
+  - Include comprehensive comments on modifications and rationale

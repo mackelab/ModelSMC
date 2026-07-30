@@ -1,0 +1,15 @@
+panel_convergence:
+  width_cm: 9.3
+  height_cm: 3.5
+
+panel_model_parts:
+  width_cm: 9.75
+  height_cm: 1.5
+
+panel_data:
+  width_cm: 9.5
+  height_cm: 2.1
+
+total:
+  width_cm: 17.145
+  height_cm: 5.3

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current time constant function `tau_w_fn` returns values on the order of 0.06\u20130.15 ms \u2014 roughly three orders of magnitude too fast for physiological M/KCNQ kinetics (~50\u2013200 ms). At rest (V \u2248 \u221265 mV, V_half_M \u2248 \u221235 mV) the denominator `Exp(-30/40)+Exp(30/20) \u2248 4.95`, giving tau_w \u2248 1/(3.3\u00d74.95) \u2248 0.061 ms. With such a tiny time constant the gate `w` collapses to its steady state `w_inf` within a single integration step, so the M-current provides no slow adaptation whatsoever and is effectively indistinguishable from a static conductance. This makes the added channel unable to reshape inter-spike intervals, mean stimulation voltage, or voltage distribution statistics, explaining the poor NLE score.",
+  "issues": [
+    {
+      "description": "tau_w_fn produces time constants ~0.06\u20130.15 ms because the numerator is 1.0. Physiological M-current (KCNQ/Kv7) has time constants of ~20\u2013200 ms. The missing scaling factor makes the gate quasi-instantaneous, destroying the slow-adaptation purpose of the channel and degrading all summary statistics that depend on inter-spike dynamics.",
+      "severity": "critical",
+      "location": "tau_w_fn function: `return 1.0 / (3.3 * denom + 1e-7)`",
+      "suggestion": "Replace the numerator 1.0 with a value in the range 100\u2013300 (milliseconds scale), e.g. `return 200.0 / (3.3 * denom + 1e-7)`. This shifts tau_w to ~20\u2013100 ms at typical sub-threshold voltages, giving the gate the slow time course needed for genuine spike-frequency adaptation and improved matching of the voltage-distribution and spike-count summary statistics."
+    },
+    {
+      "description": "nois_fact_obs is hard-coded to 0.0, completely suppressing observation noise on the returned voltage trace. Because the target recordings include measurement/channel noise, statistics such as resting-potential standard deviation, voltage variance, skewness, and kurtosis cannot be matched regardless of how well the deterministic dynamics are tuned.",
+      "severity": "major",
+      "location": "`nois_fact_obs = 0.0` (fixed biophysical constants block)",
+      "suggestion": "Either (a) tie observation noise to the already-inferred `nois_fact` parameter (e.g. `nois_fact_obs = nois_fact * scale` with a small fixed scale \u2248 0.1\u20130.5), or (b) use a small fixed non-zero value such as `nois_fact_obs = 0.5`. This will allow the model to reproduce the empirical variance and higher-order moments of the resting and stimulation-period voltage distributions."
+    }
+  ]
+}

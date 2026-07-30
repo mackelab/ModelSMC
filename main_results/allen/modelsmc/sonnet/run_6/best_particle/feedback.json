@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Critical parameter index misalignment: the M-current kinetic parameters (param_i and param_j) are mapped to params[:,8] and params[:,9] (the X2 slot), while params[:,7] (X1's second allocated parameter) is silently skipped and ignored. This means the inference engine optimizes params[:,7] for nothing, and the M-current half-activation voltage shift is actually pulled from X2's first slot rather than X1's second slot, causing systematic mismatch between what the inference assumes and what the simulator computes. Additionally, three inferred parameters (indices 6, 8, 9) are consumed by a single channel, violating the two-per-slot constraint and leaving no budget for X2.",
+  "issues": [
+    {
+      "description": "params[:,7] (X1's second tunable parameter) is never used. Instead, param_i is read from params[:,8] and param_j from params[:,9], which belong to the X2 slot. This misalignment means the inference engine wastes one degree of freedom and the M-current kinetics are driven by X2 parameters the model was never told to associate with I_KM. The resulting mismatch degrades all voltage-distribution statistics (mean, variance, skewness, kurtosis) and spike-count accuracy.",
+      "severity": "critical",
+      "location": "Parameter extraction block: `param_i = params[:, 8]` and `param_j = params[:, 9]`",
+      "suggestion": "Remap so that X1 owns exactly two inferred parameters: `gbar_M = params[:,6]` and `param_i = params[:,7]` (half-activation voltage shift). Fix `param_j` at a physiologically motivated constant (e.g., 100\u2013200 ms), which is within the known M-current range and removes the need for a third inferred parameter. If a second tunable kinetic parameter is still desired, assign it to X2's first slot `params[:,8]` and document it explicitly, leaving `params[:,9]` either fixed or unused."
+    },
+    {
+      "description": "E_K was changed from the original -107.0 mV to -90.0 mV without verifying consistency with the experimental dataset's resting potential and spike after-hyperpolarization depth. If the held-out recordings were generated with E_K near -107 mV (or the base model's inference was calibrated to that value), shifting E_K to -90 mV raises the resting potential, reduces AHP depth, and systematically biases mean voltage, resting potential, and kurtosis statistics away from the data, contributing to the high NLE scores.",
+      "severity": "major",
+      "location": "Fixed constant: `E_K = -90.0`",
+      "suggestion": "Treat E_K as an inferred or carefully validated quantity rather than a hard-coded 'correction'. Either restore E_K = -107.0 mV to match the base model's calibration context, or expose E_K as an additional fixed parameter set by cross-validating against the pre-stimulation resting potential metric. If -90 mV is kept, verify that the inferred gbar_K and g_leak values still reproduce the correct resting potential and AHP statistics reported in the summary statistics."
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+panel_a: # panel_problem
+  width_cm: 7.72
+  height_cm: 3.0
+
+panel_b: # panel_landscape
+  width_cm: 10.8
+  height_cm: 7.4
+
+panel_c: # panel_smc_loop
+  width_cm: 7.41
+  height_cm: 4.6
+
+total:
+  width_cm: 17.145 # total actual = 18.52
+  height_cm: 7.0

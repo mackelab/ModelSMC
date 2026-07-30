@@ -1,0 +1,10 @@
+name: smc_method_minimal
+particle_pool_size: 50
+temperature: 0.75
+ess_threshold: 0.5
+feedback_mode: llm_only
+
+defaults:
+  - base
+  - evaluator: base
+  - optimizer: abc

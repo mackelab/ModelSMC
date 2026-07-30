@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by I_Na(m³h), I_K(n⁴), I_leak, I_Km(p), I_inj + noise
+- **m, h** (Na⁺ activation/inactivation): standard HH voltage-dependent first-order kinetics around Vt
+- **n** (K⁺ delayed-rectifier activation): standard HH voltage-dependent first-order kinetics around Vt
+- **p** (M-type K⁺ slow activation): Boltzmann steady-state with inferred half-activation v_half=Vt+param_i and time constant tau_Km=param_j; uses X1 conductance slot only
+- **Key assumptions**: single-compartment; M-current strictly uses params[:,6] (conductance), params[:,8] (half-activation offset, positive, no negation), params[:,9] (time constant, positive, no negation); params[:,7] unused to preserve slot semantics; tonic spiking without bursting

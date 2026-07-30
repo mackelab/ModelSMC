@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current (IKm), injected current, and noise
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation (standard HH)
+- **n** (K⁺ gate): delayed-rectifier activation (standard HH)
+- **p** (M-current gate): slow non-inactivating K⁺ activation; gbar_Km from X1 slot (params[:,6]), V_half from -params[:,8], tau_max from params[:,9]
+- **Core assumption**: tonic regular spiking explained by M-current modulating inter-spike intervals; single-channel X1 slot used; params[:,7] unused for parsimony

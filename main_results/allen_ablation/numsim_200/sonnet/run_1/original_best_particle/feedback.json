@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The primary failure mode is that the X2 channel slot (params[:,8] and params[:,9]) is completely unused, leaving the model with only 7 effective free parameters across 7 target summary statistics. With M-current alone via X1, the simulator cannot independently control resting potential statistics (mean, SD) and stimulation-period voltage distribution moments (variance, skewness, kurtosis) simultaneously. The neg_avg_log_marginal_NLE of 25.2 indicates systematic distributional mismatch that a single extra channel cannot resolve across all statistics.",
+  "issues": [
+    {
+      "description": "The X2 slot (params[:,8] and params[:,9]) is entirely unused. Two tunable parameters are wasted, reducing the model's capacity to jointly fit all 7 summary statistics. For a neuron exhibiting regular tonic spiking, a hyperpolarization-activated cation current (Ih, HCN channel) is a physiologically motivated second channel: it activates during hyperpolarization (between spikes and at rest), depolarises resting membrane potential, reduces resting SD, and shapes subthreshold voltage distribution without introducing bursting or high-frequency dynamics. Recommended: implement Ih using params[:,8] as gbar_h (max conductance, mS/cm\u00b2) and params[:,9] as E_h (reversal potential, mV, typically -20 to -40 mV encoded as a positive value negated internally). Ih gating: q_inf = 1/(1+exp((V+75)/5.5)), tau_q fixed ~100ms (physiological HCN), I_h = gbar_h * q * (V - E_h).",
+      "severity": "major",
+      "location": "forward() method \u2014 after M-current parameter block, state allocation, and main simulation loop",
+      "suggestion": "Add Ih channel using X2 slot: gbar_h = params[:,8], E_h = -params[:,9] (so params[:,9] encodes magnitude in [1e-4, 60], giving E_h in [-60, 0] mV). Add gate q with q_inf = 1/(1+Exp((V+75)/5.5)), tau_q_fixed = 100.0 ms. Include I_h = gbar_h * q * (V - E_h) in both tau_V_inv (add gbar_h * q[:, i-1] / C) and V_inf numerator (add gbar_h * q[:, i-1] * E_h). Update q using exponential Euler: q[:, i] = q_inf + (q[:, i-1] - q_inf) * Exp(-tstep / tau_q_fixed). Initialise q[:,0] = q_inf(V_init)."
+    },
+    {
+      "description": "The M-current time constant formula tau_p = tau_max_M / (cosh(dv) + 1e-6) where dv = (V - V_half_M) / 40 produces tau_p values that decay too rapidly away from V_half_M (cosh grows steeply), making the M-gate nearly instantaneous at action potential peaks (~+40 mV above V_half). This distorts spike shape and ISI statistics. The standard KCNQ formulation uses a narrower normalisation: tau_p = tau_max / (3.3 * (exp((V - V_half_M)/40) + exp(-(V - V_half_M)/20))) or equivalently a two-exponential sum, which keeps tau_p in the 50-200 ms range across physiological voltages.",
+      "severity": "minor",
+      "location": "tau_p() function, line: return tau_max_M / (torch.cosh(dv) + 1e-6)",
+      "suggestion": "Replace the cosh-based formula with a two-exponential formulation that keeps tau_p slow across the full voltage range: tau_p = tau_max_M / (torch.exp((x - V_half_M) / 40.0) + torch.exp(-(x - V_half_M) / 20.0) + 1e-6). This prevents tau_p from collapsing to near-zero at depolarised potentials during spike peaks, preserving the slow, non-inactivating character of the M-current and improving spike-frequency adaptation regularity."
+    }
+  ]
+}

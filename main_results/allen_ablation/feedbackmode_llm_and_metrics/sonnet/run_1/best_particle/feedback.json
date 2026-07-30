@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The model achieves a neg_avg_log_marginal_NLE of 24.4 (total 244), indicating substantially poor fit. The primary failure is likely that the M-current alone is insufficient to explain all 7 experimental summary statistics simultaneously \u2014 particularly the resting-potential mean/std and the voltage distribution shape statistics (skewness, kurtosis). The X2 slot is entirely unused, leaving available model capacity untapped. Additionally, the M-current half-activation is parameterized as an offset from the inferred Vt (v1 = x - Vt - param_i), creating a non-identifiable coupling between params[:,4] and params[:,8] that can destabilize inference.",
+  "issues": [
+    {
+      "description": "The X2 channel slot (params[:,7] and an additional shape param) is completely unused, leaving significant model capacity on the table. The resting-potential statistics (mean, std) and higher-order distribution moments (skewness, kurtosis) are unlikely to be well-matched by the M-current alone. A hyperpolarization-activated cation current (Ih, HCN channel) in slot X2 is well-motivated: Ih activates below rest (~-60 to -70 mV), depolarizes the resting potential toward a stable set-point, adds subthreshold membrane noise through voltage-sag, and is a standard mechanism for regularizing inter-spike intervals in tonically-spiking neurons. It would directly improve fit to mean resting potential, resting std, and the voltage distribution statistics without introducing bursting.",
+      "severity": "major",
+      "location": "params[:,7] unused; no X2 channel block in the simulation loop",
+      "suggestion": "Implement an H-current (Ih) in slot X2: single activation gate `q` with half-activation below rest, e.g. `q_inf(x) = 1/(1+exp((x - V_half_h)/6))` where V_half_h is fixed around -75 mV, with gbar_X2 = params[:,7] as conductance and a fixed reversal potential E_h ~ -30 mV (mixed Na+/K+). Integrate q with a fixed slow time constant (~200-400 ms). This adds a depolarizing holding current at rest that stabilizes resting potential statistics and complements the M-current's spike-regularizing role."
+    },
+    {
+      "description": "The M-current p-gate half-activation is defined as `v1 = x - Vt - param_i`, making the absolute half-activation voltage equal to `Vt + param_i`. Since Vt is itself an inferred parameter (params[:,4]), the effective half-activation is the sum of two free parameters being jointly inferred. This coupling creates a flat inference landscape (many (Vt, param_i) pairs give the same half-activation), slowing convergence and inflating the NLE score. Decoupling the half-activation from Vt would make the M-current parameter more identifiable.",
+      "severity": "major",
+      "location": "p_inf function: `v1 = x - Vt - param_i`",
+      "suggestion": "Replace the Vt-relative formulation with a fixed anatomical anchor: use `v1 = x - (-55.0 + param_i)` where param_i now represents a signed offset from a fixed reference of -55 mV (near typical M-current half-activation), or simply `v1 = x - param_i` if param_i is re-interpreted as the absolute half-activation voltage. This decouples the M-current half-activation from the global Vt parameter, making both independently identifiable during inference and reducing degeneracy in the posterior."
+    }
+  ]
+}

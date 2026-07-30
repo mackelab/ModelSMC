@@ -1,0 +1,5 @@
+- Variables: V (membrane voltage) <- ionic currents (I_Na, I_K, I_X1, I_leak), input_current, intrinsic noise.
+- Gating: m,h,n follow HH α/β → inf/tau; p is one added slow, non‑inactivating activation for X1 (M‑type K) driven by V.
+- Currents: I_Na ∝ gbar_Na*m^3*h*(V-E_Na); I_K ∝ gbar_K*n^4*(V-E_K); I_X1 ∝ gbar_X1*p*(V-E_K); I_leak ∝ g_leak*(V-E_leak).
+- Causal flow: params → (gbar, V_half_p, tau_base_p) → gating kinetics (m,h,n,p) → ionic currents → V; seed → stochastic current.
+- Core assumptions: only ONE new channel (X1, M‑type K) added using both flexible params (param_i mapped to V_half in physiol. range; param_j to tau_base); noise model kept as original.

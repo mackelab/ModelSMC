@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-type K⁺ currents, injected current, and noise
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation with Hodgkin-Huxley kinetics anchored at Vt
+- **n** (K⁺ gate): delayed-rectifier activation, voltage-dependent, anchored at Vt
+- **p** (M-current gate): slow non-inactivating K⁺ activation; half-activation at param_i (~−35 mV), timescale from param_j (~100–500 ms)
+- Core assumption: M-current provides spike-frequency adaptation supporting regular tonic firing without bursting

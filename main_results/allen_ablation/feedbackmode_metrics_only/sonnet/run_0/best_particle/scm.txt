@@ -1,0 +1,5 @@
+- **V**: Membrane potential; driven by Na⁺, K⁺ (DR), A-type K⁺ (IA), leak, injected current
+- **m, h**: Na⁺ fast activation/inactivation; standard HH voltage-dependent kinetics (Vt-shifted)
+- **n**: Delayed-rectifier K⁺ activation; slower voltage-dependent kinetics (Vt-shifted)
+- **a, b**: A-type K⁺ activation/inactivation; a_inf sigmoid with tunable V_half_a (param_i), fixed k_a=10mV, τ_a=2ms; b_inf coupled at (V_half_a−25mV), same slope; τ_b tunable (param_j, [10,500]ms)
+- **Assumptions**: Single-compartment; tonic spiking; KEY change from iter3 (score 28.1): restored coupled b_inf (iter2 was best at 25.2); targeted change: activation power a^4 (was a^3) for sharper threshold voltage-sensitivity, inact_offset 25mV (was 20mV) for slightly deeper b_inf half-voltage below V_half_a

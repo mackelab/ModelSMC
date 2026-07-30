@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) have their conductances (`gbar_X1`, `gbar_X2`, `param_i`, `param_j`) extracted from `params` but are completely absent from the kinetics definitions, state variable declarations, initialization, integration loop, and the `tau_V_inv`/`V_inf` expressions. The base HH model alone cannot reproduce the tonic spiking statistics (spike count, resting potential mean/std, voltage variance, skewness, kurtosis), explaining the high NLE score (~27 avg). At minimum, one slow voltage-gated channel must be implemented end-to-end.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never appear in any kinetics function, state variable, initialization, or voltage update. The simulation is therefore identical to a plain 3-channel HH model regardless of what the inference engine assigns to these parameters, making the two extra slots completely inert.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTION blocks (kinetics, state variables, initialization, simulation loop, tau_V_inv, V_inf)",
+      "suggestion": "Implement a slow non-inactivating M-type K+ current for X1 (single gating variable `p`). Kinetics: `alpha_p(v) = 1e-3 * efun(-0.1*(v+30)) / 0.1`, `beta_p(v) = 1e-3 * Exp(-(v+30)/9)` (adjust offsets using `param_i` as the half-activation shift, e.g., replace 30 with `-param_i`). Add state variable `p`, initialize `p[:,0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`, update it in the loop, and add `+ gbar_X1 * p[:, i-1] * (V[:, i-1] - E_K)` contribution to both `tau_V_inv` (as `+ gbar_X1 * p[:, i-1]`) and `V_inf` numerator (as `+ gbar_X1 * p[:, i-1] * E_K`). Use `param_j` as a slow time-constant modulator if needed."
+    },
+    {
+      "description": "With only standard Na/K/leak channels the model cannot match the observed voltage distribution statistics (variance, skewness, kurtosis) or the precise spike count in tonic firing, because there is no slow repolarizing or adaptation current to set the inter-spike interval. Adding only X1 (M-current) may still leave X2 unused, wasting an available degree of freedom if the fit remains poor.",
+      "severity": "major",
+      "location": "tau_V_inv and V_inf expressions inside the simulation loop",
+      "suggestion": "After verifying X1 improves the fit, optionally implement X2 as a persistent (non-inactivating) Na+ current: `I_NaP = gbar_X2 * m_p[:, i-1] * (V[:, i-1] - E_Na)` where `m_p` follows `m_inf_p(v) = 1/(1+Exp(-(v - param_j_offset)/5))` with a fast time constant (~1 ms). Contribute `+ gbar_X2 * m_p[:, i-1]` to `tau_V_inv` and `+ gbar_X2 * m_p[:, i-1] * E_Na` to the `V_inf` numerator. This adds a depolarizing drive that can shift mean voltage during stimulation and adjust kurtosis/skewness without inducing bursting."
+    }
+  ]
+}

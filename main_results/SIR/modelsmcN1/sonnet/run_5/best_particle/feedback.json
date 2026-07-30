@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The NB(k=15) infection model in `forward` (the NB draw at the infection step) worsens NLE from -363 (Binomial baseline) to -419. The Negative Binomial overdispersion, even at the mild k=15, is adding variance that hurts SBI likelihood estimation compared to the simple Binomial. The primary fix is to revert infection to Binomial(n=S, p=p_inf) which was the confirmed best performing baseline.",
+  "issues": [
+    {
+      "description": "NB(k=15) infection draw worsens NLE to -419 vs -363 for Binomial baseline. Despite theoretical motivation for COVID superspreading, the mild overdispersion at k=15 degrades inference. The SBI posterior is less identifiable with the added variance, and the marginal likelihood is lower across all test trajectories.",
+      "severity": "critical",
+      "location": "forward() method \u2014 infection draw block: `new_inf_raw = int(rng.negative_binomial(n=k_inf, p=p_nb))`",
+      "suggestion": "Revert infection to Binomial: replace `new_inf_raw = int(rng.negative_binomial(n=k_inf, p=p_nb))` with `new_infections = min(int(rng.binomial(n=S, p=p_inf)), S)` and remove the NB-related `mu_inf`/`k_inf`/`p_nb` intermediate variables. This restores the confirmed NLE=-363 baseline. To push beyond -363, consider instead applying NB to recovery (untested): `new_recoveries = min(int(rng.negative_binomial(n=k_rec, p=k_rec/(k_rec+mu_rec))), I)` with k_rec=20 and mu_rec=I*p_rec, since recovery heterogeneity is also clinically motivated and has not yet been explored."
+    },
+    {
+      "description": "Initial parameter vector [beta=0.25, gamma=0.07] yields R0\u22483.6. While reasonable for early COVID, if the training data reflects a different epidemic phase (e.g., post-intervention R0\u22481.5\u20132.0), SBI optimization may be starting far from the posterior mode, slowing convergence and reducing NLE.",
+      "severity": "minor",
+      "location": "`__init__` method: `self.parameters = np.array([0.25, 0.07])`",
+      "suggestion": "Try initializing at [beta=0.2, gamma=0.1] (R0=2.0) as an alternative prior center closer to controlled epidemic conditions, or [beta=0.3, gamma=0.1] (R0=3.0). Additionally, consider widening beta upper clip back to 2.0 cautiously to allow R0 up to 20 for very early explosive outbreak scenarios, since the current [1e-4, 1.0] clip may be truncating valid high-transmission posteriors."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder `...` and returns the unchanged state. This means the simulator produces no dynamics whatsoever, explaining the catastrophically large negative log-likelihood scores (2.65e+32 range). The SIR transition equations must be coded inside `forward`.",
+  "issues": [
+    {
+      "description": "The `forward` method body is empty (only `...` and `next_state = state.copy()`). No SIR dynamics are computed, so every predicted next state equals the current state. This is the sole cause of the astronomical NLE values.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines after the docstring",
+      "suggestion": "Implement discrete stochastic SIR transitions inside `forward`. Use `parameters[0]` as \u03b2 (transmission rate) and `parameters[1]` as \u03b3 (recovery rate). Compute N = S + I + R, then draw new infections and recoveries with binomial samples: `new_infections = rng.binomial(S, 1 - np.exp(-beta * I / N))` and `new_recoveries = rng.binomial(I, 1 - np.exp(-gamma))`. Update S, I, R accordingly and return the new state dict. Example:\n```python\nS, I, R = state['S'], state['I'], state['R']\nbeta, gamma = parameters[0], parameters[1]\nN = S + I + R\nif N == 0:\n    return state.copy()\np_infect = 1.0 - np.exp(-beta * I / N)\nnew_infections = int(rng.binomial(S, np.clip(p_infect, 0, 1)))\np_recover = 1.0 - np.exp(-gamma)\nnew_recoveries = int(rng.binomial(I, np.clip(p_recover, 0, 1)))\nnext_state = {'S': S - new_infections, 'I': I + new_infections - new_recoveries, 'R': R + new_recoveries}\nreturn next_state\n```"
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an `AttributeError`, making the simulator crash on first use.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__",
+      "suggestion": "Add a default initialization in `__init__`, e.g. `self.parameters = np.array([0.3, 0.1])`, so the simulator has valid default \u03b2 and \u03b3 values (typical COVID-19 ballpark) and does not crash before parameters are explicitly set by the inference procedure."
+    }
+  ]
+}

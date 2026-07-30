@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current implementation incorrectly consumes X2-slot parameters (indices 8 and 9) for V_half_M and tau_max_M while leaving the X1-slot's own second tunable parameter (index 7) completely unused. Because the inference engine assigns priors independently to each slot, using cross-slot indices means the M-current is being shaped by parameters whose priors/ranges were not designed for it, and index 7 carries zero gradient signal\u2014wasting the X1 slot's allocated degree of freedom. This mismatch is almost certainly a primary driver of the high neg_avg_log_marginal_NLE (~25.8).",
+  "issues": [
+    {
+      "description": "M-current uses three parameter indices (6, 8, 9) instead of the two indices assigned to X1 slot (6, 7). Index 7 (X1's second parameter) is never read, and indices 8\u20139 (the X2 slot) are silently hijacked for V_half_M and tau_max_M. This corrupts the parameter\u2013prior correspondence assumed by the inference engine and leaves one free parameter completely inert.",
+      "severity": "critical",
+      "location": "Lines: `gbar_M = params[:, 6]`, `V_half_M = -params[:, 8]`, `tau_max_M = -params[:, 9]`",
+      "suggestion": "Restrict the M-current to exactly two parameters from the X1 slot: use `params[:, 6]` for `gbar_M` and `params[:, 7]` for one free kinetic parameter (e.g., V_half_M with `V_half_M = -params[:, 7]`). Fix `tau_max_M` to a physiologically reasonable constant (e.g., 200 ms) so that the M-current is fully specified within the X1 slot budget. If a second kinetic degree of freedom is needed, implement a separate channel in the X2 slot using `params[:, 8]` and `params[:, 9]`."
+    },
+    {
+      "description": "tau_max_M is computed as `-params[:, 9]`, which yields a negative time constant whenever the optimizer assigns a positive value to params[:, 9]. A negative tau_max_M propagates into tau_p_M, making the M-gate's exponential-Euler update diverge (exp of a positive number grows without bound), producing NaN or exploding voltages that contribute directly to a high NLE.",
+      "severity": "major",
+      "location": "`tau_max_M = -params[:, 9].float()` and `tau_p_M` function",
+      "suggestion": "Once the indexing is corrected (see issue 1), either fix tau_max_M as a positive constant or, if it remains inferred, apply a strictly positive transformation such as `tau_max_M = torch.nn.functional.softplus(params[:, 7]) + 50.0` to guarantee tau_max_M > 0 regardless of the raw parameter value. At minimum add a `torch.clamp(tau_max_M, min=1.0)` guard before it is used in tau_p_M."
+    }
+  ]
+}

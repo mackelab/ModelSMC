@@ -1,0 +1,12 @@
+defaults:
+  - base
+
+name: npe_pfn
+
+# NPE-PFN doesn't use z_score_x (handled internally by TabPFN)
+
+# Parameter estimation settings
+sampling_timeout: 60  # Timeout in seconds for posterior sampling (per sample)
+num_samples_posterior: 5_000  # Number of posterior samples to draw only for max_log_posterior mode
+evaluation_mode: power_scaling  # options: max_log_posterior, power_scaling
+temperature: 1e-5  # Temperature for power scaling mode

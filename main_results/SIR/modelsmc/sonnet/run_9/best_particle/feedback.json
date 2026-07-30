@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The very poor NLE scores (neg_avg_log_marginal_NLE: -526) indicate the simulator cannot adequately fit the observed trajectories. The primary culprit is the overly tight hard-clipping of parameters (beta in [0.1,0.5], gamma in [0.05,0.2]), which prevents the SBI optimizer from exploring the full parameter space when the true data-generating parameters may lie outside these bounds. Secondarily, using pure binomial sampling introduces high discrete variance per step that compounds over 60 days, producing trajectory distributions too diffuse to yield high likelihoods under NLE.",
+  "issues": [
+    {
+      "description": "Parameter clipping ranges are too restrictive. Beta is hard-clipped to [0.1, 0.5] and gamma to [0.05, 0.2]. If the true data-generating parameters fall even slightly outside these bounds, the SBI optimizer is permanently blocked from recovering them, causing systematic model misfit and catastrophic NLE degradation across all 60 timesteps. COVID-19 transmission rates can vary widely across populations and intervention regimes, requiring a much broader explorable range.",
+      "severity": "critical",
+      "location": "forward() method, lines extracting/clipping beta and gamma: `beta = float(np.clip(parameters[0], 0.1, 0.5))` and `gamma = float(np.clip(parameters[1], 0.05, 0.2))`",
+      "suggestion": "Widen the clipping ranges significantly: use beta in [0.01, 1.0] and gamma in [0.01, 0.5]. This preserves biological plausibility (R0 up to ~100, infectious periods from 2-100 days) while giving the SBI optimizer the freedom to find the true parameters. Example: `beta = float(np.clip(parameters[0], 0.01, 1.0))` and `gamma = float(np.clip(parameters[1], 0.01, 0.5))`."
+    },
+    {
+      "description": "Pure binomial stochastic transitions accumulate high variance over 60 steps, creating very diffuse trajectory distributions. For NLE-based SBI with few observed samples, this high per-step noise means simulated trajectories rarely closely match any observed trajectory, collapsing the log-likelihood. The exponential waiting-time probability `p_infect = 1 - exp(-beta*I/N)` double-applies a continuous-time correction on top of an already discrete model, introducing an additional systematic downward bias in new_infections relative to the standard discrete SIR formulation.",
+      "severity": "major",
+      "location": "forward() method, transition probability computation: `p_infect = float(np.clip(1.0 - np.exp(-lambda_t), 0.0, 1.0))`",
+      "suggestion": "Switch to the standard discrete-time SIR probability formulation `p_infect = beta * I / N` (clipped to [0,1]) rather than the exponential form, which is calibrated for continuous-time ODE discretization and not for daily discrete binomial draws. This aligns the stochastic model with conventional discrete SIR and typically yields sharper, better-calibrated trajectory distributions for NLE. Example: `p_infect = float(np.clip(beta * float(I) / float(N), 0.0, 1.0))` and `p_recover = float(np.clip(gamma, 0.0, 1.0))`."
+    }
+  ]
+}

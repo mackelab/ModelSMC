@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` method in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder `...` and returns a copy of the current state unchanged. This means the simulator produces zero dynamics, which explains the astronomically bad NLE scores (2.36e+31/2.36e+33). The two SIR model parameters (beta, gamma) are never used in any computation.",
+  "issues": [
+    {
+      "description": "The `forward` method body is empty (placeholder `...`). No SIR transition dynamics are computed. The method simply returns `state.copy()`, so S, I, R never change across all 60 time steps. This makes the simulated trajectories completely unrealistic (flat lines), causing the likelihood estimator to assign near-zero probability to any observed trajectory with actual dynamics.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines after `next_state = state.copy()`",
+      "suggestion": "Implement the discrete stochastic SIR step using the two parameters as beta (transmission rate) and gamma (recovery rate). Compute N = S + I + R, then draw new infections as a Binomial(S, 1 - exp(-beta * I / N)) sample and new recoveries as Binomial(I, gamma). Update: S_new = S - new_infections, I_new = I + new_infections - new_recoveries, R_new = R + new_recoveries. Return {'S': int(S_new), 'I': int(I_new), 'R': int(R_new)}. Using stochastic Binomial draws (via rng.binomial) rather than deterministic ODEs better captures COVID spread variance and is more compatible with simulation-based inference."
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so calling `get_parameters()` before `set_parameters()` raises an AttributeError. Additionally, there is no validation or bounding of beta/gamma values, which can cause numerical issues (e.g., probabilities > 1 in Binomial draws) during SBI parameter sweeps.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.get_parameters",
+      "suggestion": "In `__init__`, initialise `self.parameters = np.array([0.3, 0.1])` (reasonable COVID defaults: beta~0.3, gamma~0.1). In `forward`, clip the computed probability for new infections: `p_infection = np.clip(1.0 - np.exp(-beta * I / N), 0.0, 1.0)` and `p_recovery = np.clip(gamma, 0.0, 1.0)` before passing to `rng.binomial` to prevent invalid probability errors during SBI optimisation over wide parameter ranges."
+    }
+  ]
+}

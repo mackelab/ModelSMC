@@ -1,0 +1,6 @@
+defaults:
+  - base
+
+name: abc
+
+# ABC doesn't need parameter estimation settings since it uses nearest neighbor approach

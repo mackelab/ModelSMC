@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The critical failure is that the two additional channel slots (gbar_X1, gbar_X2, param_i, param_j) are extracted from the parameter tensor but are never implemented, connected to any kinetics, or included in the voltage dynamics. This means the model is effectively a plain 3-variable HH model regardless of what values those parameters take, explaining the high neg_avg_log_marginal_NLE (~25.1). For regular tonic spiking with the observed statistics (spike count, resting potential, variance, skewness, kurtosis during stimulation), at least one slow voltage-gated K+ channel (e.g., M-current / IKM) is almost certainly missing \u2014 it modulates firing rate and ISI regularity without causing bursting.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted but never used. No kinetics functions are defined, no state variables are created, and no additional currents contribute to tau_V_inv or V_inf. This is a critical implementation gap: the model cannot fit the data regardless of parameter optimization because these degrees of freedom have zero effect on simulated voltage.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTION blocks \u2014 kinetics, state variable declaration, initialization, loop update, and tau_V_inv/V_inf terms",
+      "suggestion": "Implement an M-type (slow non-inactivating) K+ channel using gbar_X1 and param_i. (1) Add kinetics: def alpha_p(x): v1 = x - param_i; return 3.3e-3 * Exp(0.04 * v1) and def beta_p(x): v1 = x - param_i; return 3.3e-3 * Exp(-0.04 * v1). (2) Declare state variable: p = torch.zeros((batch_size, time_steps), device=device). (3) Initialize: p[:, 0] = inf_x(alpha_p(V[:, 0]), beta_p(V[:, 0])). (4) In the loop compute a_p, b_p = alpha_p(V[:, i-1]), beta_p(V[:, i-1]) and update p[:, i] = inf_x(a_p, b_p) + (p[:, i-1] - inf_x(a_p, b_p)) * Exp(-tstep / tau_x(a_p, b_p)). (5) Add to tau_V_inv: + p[:, i-1] * gbar_X1 and to V_inf numerator: + p[:, i-1] * gbar_X1 * E_K. Note param_i is already negated in extraction (param_i = -params[:, 8]), so its effective range covers typical M-current half-activation voltages (~-35 mV)."
+    },
+    {
+      "description": "The resting potential is determined partly by E_leak = -params[:, 3] (negated), and param_i = -params[:, 8] (also negated). With the M-current channel, param_i controls the half-activation voltage of the p-gate. If the inferred param_i shifts the activation curve to voltages far from the subthreshold range (~-60 to -40 mV), the M-current will have no effect during tonic spiking. This secondary issue can cause poor fit to mean resting potential and mean voltage during stimulation even after the primary fix.",
+      "severity": "major",
+      "location": "Parameter extraction block: param_i = -params[:, 8]",
+      "suggestion": "Verify that param_i after negation lands in the physiologically relevant range for M-current half-activation. Since params[:, 8] is in [1e-4, 150], param_i = -params[:, 8] gives range [-150, ~0], which covers the relevant range. If the half-activation voltage for M-current needs to be around -35 mV, allow the inference to find params[:, 8] \u2248 35. This should work with the existing parameterization, but if needed, add an offset: use (param_i - 35.0) in alpha_p/beta_p formulas to shift the default activation curve to ~-35 mV, reducing the burden on the optimizer to find the correct value."
+    }
+  ]
+}

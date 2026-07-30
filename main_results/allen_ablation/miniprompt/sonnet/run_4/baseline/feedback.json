@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional ion channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted but never wired into the simulation. All 'EDITABLE SECTION' blocks remain empty, so the extra channels contribute nothing to the membrane dynamics, causing a large discrepancy with experimental recordings.",
+  "issues": [
+    {
+      "description": "Missing M-type slow K+ (IM) channel implementation across all editable sections. gbar_X1 (range [1e-4,10] mS/cm\u00b2) and param_i/param_j (large range up to 3000, consistent with slow IM time constants) are never used, leaving the model without spike-frequency adaptation.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks",
+      "suggestion": "Add the following in each editable block:\n\n1) Kinetics section:\n```python\ndef alpha_p(x):\n    v1 = x - param_i  # param_i ~ -35 mV\n    return 1e-4 * efun(-0.2 * v1) / 0.2\ndef beta_p(x):\n    v1 = x - param_i\n    return 1e-4 * efun(0.2 * v1) / 0.2\n```\n\n2) State variable declaration:\n```python\np = torch.zeros((batch_size, time_steps), device=device)\n```\n\n3) Initialization:\n```python\np[:, 0] = inf_x(alpha_p(V[:, 0]), beta_p(V[:, 0]))\n```\n\n4) Per-step kinetics:\n```python\na_p, b_p = alpha_p(V[:, i-1]), beta_p(V[:, i-1])\n```\n\n5) tau_V_inv term:\n```python\n+ p[:, i-1] * gbar_X1\n```\n\n6) V_inf term:\n```python\n+ p[:, i-1] * gbar_X1 * E_K\n```\n\n7) State update:\n```python\np[:, i] = inf_x(a_p, b_p) + (p[:, i-1] - inf_x(a_p, b_p)) * Exp(-tstep / tau_x(a_p, b_p))\n```"
+    },
+    {
+      "description": "param_j (range [1e-4, 3000]) is extracted but completely unused. For the M-current, this large-range parameter is well-suited as a multiplicative scaling factor for the time constant (consistent with IM's characteristically slow kinetics of tens to hundreds of ms).",
+      "severity": "major",
+      "location": "alpha_p / beta_p kinetics and state update for p gate",
+      "suggestion": "Incorporate param_j as a time-constant scaler in the p-gate update. Replace the direct exponential Euler update:\n```python\np[:, i] = inf_x(a_p, b_p) + (p[:, i-1] - inf_x(a_p, b_p)) * Exp(-tstep / (tau_x(a_p, b_p) * (-param_j)))\n```\nNote: param_j is stored as negative (param_j = -params[:,9]), so -param_j recovers the positive scaling value. This lets the optimizer tune IM kinetics over a wide timescale range without changing the gating equation structure."
+    }
+  ]
+}

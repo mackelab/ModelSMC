@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator wastes params[:,7] (X1 slot param 2) while repurposing the entire X2 slot (params[:,8-9]) for M-current kinetic parameters (V_half_M and tau_M), leaving no room for a second channel. The excessively broad V_half_M prior (-150 to 0 mV) causes poor posterior exploration and biologically unreasonable parameter regimes. With neg_avg_log_marginal_NLE=23.6, the single M-current channel is insufficient to simultaneously match all 7 summary statistics \u2014 particularly the distributional ones (skewness, kurtosis) and resting potential std, which likely require a second mechanism.",
+  "issues": [
+    {
+      "description": "params[:,7] is completely wasted (labeled 'unused') while the X2 slot (params[:,8-9]) is consumed by M-current's V_half_M and tau_M. This design sacrifices the second channel slot for M-current kinetic flexibility that could instead be achieved by fixing V_half_M at the well-established physiological value (~-40 mV for Kv7) and moving tau_M to params[:,7]. The freed X2 slot (params[:,8-9]) should then implement a second channel \u2014 a candidate is a slow calcium-activated K+ current (SK/AHP current) or persistent Na+ current \u2014 to independently tune distributional statistics (skewness, kurtosis, voltage variance) that the M-current alone cannot adequately control.",
+      "severity": "critical",
+      "location": "params[:,7] assignment (line: '# X2 slot (params[:,7]) intentionally unused') and params[:,8-9] usage for V_half_M/tau_M",
+      "suggestion": "Restructure: assign gbar_M=params[:,6], tau_M=params[:,7] (both within X1 slot, drop inferred V_half_M, fix it at -40 mV). Then use params[:,8]=gbar_X2 and params[:,9]=param_X2 for a second channel. A small-conductance calcium-activated K+ current (SK) or a subthreshold persistent Na+ current (INaP) would improve distributional fit without producing bursting: e.g., I_SK = gbar_SK * z * (V - E_K) where z relaxes to 1/(1+exp(-(V-V_half_SK)/5)) with tau ~50 ms."
+    },
+    {
+      "description": "The V_half_M prior spans (-150, 0) mV via V_half_M = -params[:,8] with params[:,8] in [1e-4, 150]. This 150 mV range is far broader than physiologically plausible for Kv7 channels (~-50 to -30 mV). Values below -80 mV cause the M-current to be constitutively active at rest, systematically hyperpolarizing the resting potential and suppressing spike count. Values near 0 mV render the M-current inert. The inference algorithm wastes posterior budget exploring these degenerate regimes, explaining the persistently high NLE loss even after multiple iterations.",
+      "severity": "major",
+      "location": "Line: 'V_half_M = -params[:, 8].float()' and the corresponding prior range [1e-4, 150]",
+      "suggestion": "Fix V_half_M at a single physiological value (e.g., -40.0 mV, consistent with Brown & Adams 1980 Kv7 characterization) and eliminate it as an inferred parameter. This removes the pathological prior tails, frees params[:,8] for the X2 channel's conductance, and reduces parameter dimensionality \u2014 improving posterior concentration and NLE. If V_half_M must remain inferred, constrain its prior to a narrow range such as params[:,8] in [20, 60] mV so that V_half_M = -params[:,8] stays in [-60, -20] mV."
+    }
+  ]
+}

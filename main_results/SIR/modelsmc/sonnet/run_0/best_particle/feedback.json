@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The extremely negative neg_avg_log_marginal_NLE (-585) indicates the stochastic Binomial simulator generates trajectories whose transition densities are poorly concentrated around the observed data. Two compounding problems exist: (1) the Binomial draws introduce variance that scales with population size and I/N, making p(x_t|x_{t-1},\u03b8) very diffuse and hard for the NLE to learn accurately; (2) the gamma reparameterisation range (0.04\u20130.18) is too narrow and may prevent the optimiser from reaching parameter values that match the observed trajectories, while the beta range (0.05\u20130.50) upper-bound may also be insufficient for high-transmissibility variants. Both issues compound to produce very low likelihoods under the learned NLE.",
+  "issues": [
+    {
+      "description": "The simultaneous Binomial draws for new_infections and new_recoveries introduce O(sqrt(N\u00b7p\u00b7(1-p))) noise per step. When I is large or N is moderate this variance is enormous, making consecutive states highly non-deterministic and forcing the NLE to spread probability mass over a wide region. This directly inflates the negative log-likelihood. For SBI with few training samples, a lower-variance transition \u2014 such as a Gaussian approximation (mean = Binomial mean, std = sqrt(N\u00b7p\u00b7(1-p)) clamped to a minimum floor) or a tau-leaping scheme with a smaller effective time-step \u2014 dramatically concentrates the likelihood and improves NLE fitting.",
+      "severity": "critical",
+      "location": "forward() \u2014 new_infections = rng.binomial(n=S, p=p_infect) and new_recoveries = rng.binomial(n=I, p=p_recover)",
+      "suggestion": "Replace bare Binomial draws with a Gaussian approximation: mu_inf = S*p_infect; sigma_inf = max(sqrt(S*p_infect*(1-p_infect)), 0.5); new_infections = int(round(rng.normal(mu_inf, sigma_inf))); clamp to [0,S]. Apply the same scheme for recoveries. This preserves the correct mean dynamics while substantially reducing per-step variance, enabling the NLE to learn a sharper, more accurate likelihood surface. Alternatively, expose a noise_scale hyperparameter (e.g. 0.1) multiplied into sigma to allow the SBI optimiser to trade off stochasticity vs. fidelity."
+    },
+    {
+      "description": "The gamma reparameterisation range (0.04\u20130.18, i.e. infectious periods of 5.6\u201325 days) excludes faster-recovering COVID scenarios (gamma up to ~0.25, ~4-day infectious period) documented in Omicron data. Similarly, the beta upper bound of 0.50 may be insufficient for high-R0 variants. When the true parameters lie outside these bounded intervals, the sigmoid squashing prevents the optimiser from ever reaching them regardless of how large the raw parameters become, causing systematic trajectory mismatch and large NLE losses.",
+      "severity": "major",
+      "location": "forward() \u2014 beta = 0.05 + 0.45 * sigmoid_beta and gamma = 0.04 + 0.14 * sigmoid_gamma",
+      "suggestion": "Widen the constrained ranges to beta \u2208 (0.05, 0.70) and gamma \u2208 (0.04, 0.30): beta = 0.05 + 0.65 * sigmoid_beta; gamma = 0.04 + 0.26 * sigmoid_gamma. Also re-initialise default raw parameters to [0.0, 0.0] (sigmoid=0.5 \u2192 beta=0.375, gamma=0.17, R0\u22482.2) which is a more central COVID prior. Wider yet still bounded ranges keep the SBI posterior well-behaved while allowing the optimiser to explore the full plausible space."
+    }
+  ]
+}

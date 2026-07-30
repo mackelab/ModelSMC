@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺ (fast), K⁺ Kdr, leak, M-current, injected current, and noise
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation via standard HH α/β kinetics
+- **n** (K⁺ Kdr gate): intermediate voltage-dependent activation via HH α/β kinetics
+- **p** (M-current gate): slow non-inactivating K⁺ activation; `gbar_M=params[:,6]`, `tau_M_peak=params[:,7]`; `V_half=-35 mV` fixed; voltage-dependent tau (bell-shaped)
+- **Assumptions**: single compartment; E_K = −77 mV (canonical HH); M-current with voltage-dependent kinetics provides spike-frequency adaptation; tonic spiking without bursting

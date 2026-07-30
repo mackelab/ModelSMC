@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator is missing the M-current (slow muscarinic K+ channel), which is a standard addition to Hodgkin-Huxley models to reproduce spike-frequency adaptation. All five EDITABLE SECTIONs remain empty\u2014no kinetics functions, state variable, initialization, loop update, or current contributions are provided for any extra channel, causing large systematic voltage discrepancies (neg_avg_log_marginal_NLE = 26.3).",
+  "issues": [
+    {
+      "description": "Missing M-current (slow K+) kinetics, state variable, and current contribution. The activation gate p governs a slow outward K+ current (I_M = gbar_X1 * p * (V - E_K)) that controls spike-frequency adaptation. Without it the model cannot match experimental recordings that show adaptation or subthreshold resonance.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks",
+      "suggestion": "1) In the kinetics section add:\n```python\ndef p_inf(x):\n    return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))\ndef tau_p(x):\n    return 1.0 / (3.3 * Exp((x - param_i) / 20.0) + Exp(-(x - param_i) / 20.0))\n```\n2) Add state variable: `p = torch.zeros((batch_size, time_steps), device=device)`\n3) Initialise: `p[:, 0] = p_inf(V[:, 0])`\n4) In the loop compute `p_inf_v = p_inf(V[:, i-1]); tau_p_v = tau_p(V[:, i-1])` and update `p[:, i] = p_inf_v + (p[:, i-1] - p_inf_v) * Exp(-tstep / tau_p_v)`\n5) Add `+ gbar_X1 * p[:, i-1]` to `tau_V_inv` and `+ gbar_X1 * p[:, i-1] * E_K` to the numerator of `V_inf` (before dividing by tau_V_inv * C). Use `param_i` (half-activation voltage, range \u2248 -50 to 0 mV) as the gating voltage offset; `gbar_X2` and `param_j` can remain unused if this single channel suffices."
+    },
+    {
+      "description": "param_j (range [-3000, 0]) is never used and its physical meaning is ambiguous. If the M-current alone does not close the performance gap, a second channel (e.g. Ih hyperpolarisation-activated current with E_h \u2248 param_j restricted to plausible values or a slow time-constant multiplier) may be needed, but adding it prematurely would over-complicate the model.",
+      "severity": "suggestion",
+      "location": "params[:, 9] extraction line and all EDITABLE SECTIONs",
+      "suggestion": "First validate performance after adding the M-current only. If neg_avg_log_marginal_NLE remains above ~10, consider adding an Ih channel: `I_h = gbar_X2 * q * (V - param_j)` with a hyperpolarisation-activated gate q using `q_inf(x) = 1/(1+Exp((x+75)/5.5))` and `tau_q(x) = 1/(0.0005*Exp(-0.1*(x+75)) + 0.0005*Exp(0.1*(x+75)))`, where param_j serves as the reversal potential E_h (clamp to [-100, -20] mV in practice)."
+    }
+  ]
+}

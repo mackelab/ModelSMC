@@ -1,0 +1,3 @@
+- seed=1
+- method.feedback_mode=metrics_only
+- +experiment=ablation_allen_modelsmc_sonnet_feedbackmode

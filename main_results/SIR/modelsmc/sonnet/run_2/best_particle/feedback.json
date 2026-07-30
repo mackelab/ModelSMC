@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator's neg_avg_log_marginal_NLE of -408 (\u2248 -6.8 nats/step over 60 steps) indicates that generated trajectories diverge substantially from the observed data. The primary failure is that simultaneous independent binomial draws for new_infections and new_recoveries from shared compartments introduce excessive stochastic variance, especially when I is moderate-to-large. Additionally, applying the exponential transform `1 - exp(-gamma)` to gamma (already constrained in (0,1)) compresses the effective recovery probability and can cause the optimizer to converge to a biased region of parameter space.",
+  "issues": [
+    {
+      "description": "Independent binomial draws for new_infections (from S) and new_recoveries (from I) are made simultaneously without coordinating the total flow out of each compartment. For large I, this yields high-variance transitions that rarely match the observed trajectory closely, collapsing the neural likelihood estimator's density estimates. A better discrete-time scheme draws new_recoveries first (from I), then new_infections from S using the *updated* force-of-infection, or uses a multinomial / Poisson draw that respects conservation more tightly. For small expected counts (lambda < ~20), Poisson draws (`rng.poisson(lam)`) have lower variance than Binomial and better approximate the continuous-time Gillespie process underlying COVID dynamics.",
+      "severity": "critical",
+      "location": "forward() \u2014 lines: new_infections = int(rng.binomial(n=S, p=p_infection)) and new_recoveries = int(rng.binomial(n=I, p=p_recovery))",
+      "suggestion": "Replace the independent binomial draws with Poisson approximations for the expected flows: `lambda_inf = beta * S * I / N` and `lambda_rec = gamma * I`, then draw `new_infections = int(min(rng.poisson(lambda_inf), S))` and `new_recoveries = int(min(rng.poisson(lambda_rec), I))`. Remove the double exponential transformation on gamma \u2014 use gamma directly as the per-capita daily recovery probability (clip to (0,1)), so `p_recovery = gamma` rather than `1 - exp(-gamma)`. This halves the curvature the optimizer must traverse and aligns gamma's scale with the observable mean infectious period (1/gamma days)."
+    },
+    {
+      "description": "The exponential transform `p_recovery = 1 - exp(-gamma)` applied to a parameter gamma that is already bounded in (0, 1-1e-6) creates a strongly nonlinear, compressed mapping. For gamma in (0, 0.3) \u2014 the COVID-relevant range \u2014 this transform squashes p_recovery to roughly half of gamma, so the SBI optimizer must find a systematically inflated gamma to compensate. This bias shifts the inferred posterior away from interpretable values and increases the marginal NLE error across all trajectories.",
+      "severity": "major",
+      "location": "forward() \u2014 line: p_recovery = 1.0 - np.exp(-gamma)",
+      "suggestion": "Use gamma directly as the per-step recovery probability without the exponential transform: `p_recovery = float(np.clip(parameters[1], 1e-6, 1.0 - 1e-6))`. Update set_parameters() and docstrings accordingly so gamma is described as 'daily recovery probability' (range 0\u20131, mean infectious period = 1/gamma days). The transmission parameter beta should also be re-documented: with the Poisson scheme, beta is the per-contact transmission rate and its natural scale for COVID is 0.1\u20130.6, so tighten its clip range to (1e-6, 2.0) for better optimization landscape."
+    }
+  ]
+}

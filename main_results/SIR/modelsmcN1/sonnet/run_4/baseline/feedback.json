@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns the current state unchanged. This means the simulator produces no dynamics, causing catastrophically poor likelihood scores (NLE ~8.27e+33). The SIR transition logic must be coded inside `forward`.",
+  "issues": [
+    {
+      "description": "The `forward` method body is empty (just `...` and `next_state = state.copy()`). No SIR model equations are applied, so every predicted next state equals the current state, yielding near-infinite negative log-likelihood. The two optimisable parameters (beta = transmission rate, gamma = recovery rate) are never used.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines after the docstring",
+      "suggestion": "Implement discrete-time stochastic SIR dynamics using the two parameters. Let parameters[0] = beta (contact/transmission rate) and parameters[1] = gamma (recovery rate). Compute N = S + I + R, then draw binomial transitions: new_infections = rng.binomial(S, 1 - exp(-beta * I / N)) and new_recoveries = rng.binomial(I, 1 - exp(-gamma)). Update S -= new_infections, I += new_infections - new_recoveries, R += new_recoveries, and clip all values to [0, N]. Return {'S': int(S), 'I': int(I), 'R': int(R)}. The exponential formulation (1 - exp(-rate)) converts continuous-time rates to discrete-time probabilities correctly and avoids probability overflow for large beta/gamma."
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so calling `get_parameters()` before `set_parameters()` raises an AttributeError. Additionally, there is no validation that parameter values are in physically meaningful ranges (beta > 0, 0 < gamma < 1), which can cause the binomial draws to fail silently during SBI optimisation.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.get_parameters",
+      "suggestion": "In `__init__`, initialise `self.parameters = np.array([0.3, 0.1])` (reasonable COVID defaults: beta\u22480.3, gamma\u22480.1). In `forward`, add safety clipping: `beta = float(np.clip(parameters[0], 1e-6, 10.0))` and `gamma = float(np.clip(parameters[1], 1e-6, 1.0 - 1e-6))` before computing transition probabilities, ensuring SBI can explore the parameter space without numerical errors."
+    }
+  ]
+}

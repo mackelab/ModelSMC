@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "High negative marginal likelihood indicates poor fit. Two primary causes: (1) an incorrect noise scaling in the time step loop that artificially inflates stochastic variability (likely dominating the summary statistics), and (2) an unused second extensible channel (X2) leaving the model under-parameterized for matching both spike-count and subthreshold statistics simultaneously.",
+  "issues": [
+    {
+      "description": "Noise term is scaled incorrectly with dt: the code divides the Gaussian draw by sqrt(dt) which increases noise amplitude as dt decreases. This produces excessive, non-physical variance in voltage traces and will drastically reduce likelihood/evidence.",
+      "severity": "critical",
+      "location": "Inside forward() loop where noise_term is computed: noise_term = nois_fact * torch.randn(...) / (sqrt_dt + 1e-12)",
+      "suggestion": "Replace the inverse-sqrt(dt) scaling with the standard sqrt(dt) scaling for additive white noise. For example: noise_term = nois_fact * torch.randn(batch_size, generator=generator, device=device) * sqrt_dt. Verify units: if nois_fact is intended as a noise standard deviation in current units (per sqrt(ms)), multiply by sqrt(dt). If it is already in per-ms units adjust accordingly. Alternatively consider representing stochasticity as conductance noise or an Ornstein-Uhlenbeck process if correlated noise is desired. After fixing, re-evaluate the likelihood\u2014this change alone often dramatically improves match to voltage variance and higher-order moments."
+    },
+    {
+      "description": "Second extensible channel slot (X2) is left unused; the model uses only an M-type K+ current. The single added slow K+ reduces excitability but cannot simultaneously tune resting/subthreshold mean, variance and spike count in all recordings, producing systematic residuals.",
+      "severity": "major",
+      "location": "Top-level channel allocation / parameter usage: gbar_X2 is read but never used (params[:,7] unused in currents).",
+      "suggestion": "Implement a small, non-inactivating depolarizing current in the X2 slot (e.g., a persistent sodium, I_NaP) or a fast A-type K+ depending on the sign of residual errors. For tonic-spiking data where resting potential is too hyperpolarized and spike count too low, add a persistent Na+ current with a low activation threshold and very slow/no inactivation: m_inf_p(V) = 1/(1+exp((V_half_p - V)/k_p)), I_NaP = gbar_X2 * m_p * (V - E_Na). Use gbar_X2 (params[:,7]) as conductance, expose V_half offset and (optionally) a tau multiplier as the two tunable parameters (or reuse param_i/param_j appropriately). Keep gbar_X2 small (initial guesses << gbar_Na) to avoid creating depolarization block or bursting. If residuals show too many spikes/instability, prefer a small A-type K+ instead of NaP. After adding X2, re-fit and check spike-count, mean/resting and higher moments."
+    }
+  ]
+}

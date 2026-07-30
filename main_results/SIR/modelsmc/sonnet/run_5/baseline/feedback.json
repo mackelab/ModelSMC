@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns the unchanged state. This means the simulator produces zero dynamics, explaining the catastrophically large negative log-likelihood scores (6.11e+32 / 6.11e+34).",
+  "issues": [
+    {
+      "description": "The `forward` method body is a stub (`...`) followed by `next_state = state.copy()` with no SIR transition logic. No infection, recovery, or population dynamics are computed, so every simulated trajectory is a flat line equal to the initial state. This is the sole cause of the near-infinite NLE loss.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward (lines after the docstring)",
+      "suggestion": "Implement the discrete-time stochastic SIR model using the two parameters as \u03b2 (transmission rate) and \u03b3 (recovery rate). Use Binomial draws for stochastic transitions: new_infections ~ Binomial(S, 1 - exp(-\u03b2 * I / N)) and new_recoveries ~ Binomial(I, 1 - exp(-\u03b3)), where N = S + I + R. Then update S -= new_infections, I += new_infections - new_recoveries, R += new_recoveries, ensuring all values stay non-negative and integer. Example snippet:\n\n    beta, gamma = parameters[0], parameters[1]\n    N = state['S'] + state['I'] + state['R']\n    if N == 0:\n        return state.copy()\n    p_infection = 1.0 - np.exp(-beta * state['I'] / N)\n    p_recovery  = 1.0 - np.exp(-gamma)\n    new_infections = int(rng.binomial(state['S'], np.clip(p_infection, 0, 1)))\n    new_recoveries  = int(rng.binomial(state['I'], np.clip(p_recovery,  0, 1)))\n    next_state = {\n        'S': state['S'] - new_infections,\n        'I': state['I'] + new_infections - new_recoveries,\n        'R': state['R'] + new_recoveries,\n    }\n    return next_state"
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so calling `get_parameters()` before `set_parameters()` raises an AttributeError. Additionally, there are no bounds/clipping guards on \u03b2 and \u03b3, which can cause numerical overflow (p_infection > 1 or negative counts) during SBI optimisation when parameters are explored outside valid ranges.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.set_parameters",
+      "suggestion": "In `__init__`, set a default: `self.parameters = np.array([0.3, 0.1])`. In `set_parameters`, clip parameters to physically valid ranges before storing: `self.parameters = np.clip(parameters, [0.0, 0.0], [1.0, 1.0])`. This prevents NaN/Inf propagation during likelihood estimation and ensures the SBI posterior search stays in a well-defined region."
+    }
+  ]
+}

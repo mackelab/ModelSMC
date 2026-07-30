@@ -1,0 +1,86 @@
+########################################################################################
+#
+# The prompts in this file are based on and adapted from the prompts in
+#
+# https://github.com/samholt/generative-simulations/blob/72b5d51a7790b8b2ebc87973ee5e9d21aa818ece/utils/gesim_prompts.py
+#
+# which was written by Samuel Holt and released under the MIT license:
+#
+# MIT License
+#
+# Copyright (c) 2025 Samuel Holt
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+########################################################################################
+
+system_description: |
+
+  Objective: Write code to create an accurate and realistic simulator for a given task.
+  Please note that the code should be fully functional. No placeholders.
+
+  You must act autonomously and you will receive no human input at any stage. You have to return as output the complete code for completing this task, and correctly improve the code to create the most accurate and realistic simulator possible.
+  You always write out the code contents. You always indent code with tabs.
+  You cannot visualize any graphical output. You exist within a machine. The code can include black box multi-layer perceptions where required.
+
+  Use the functions provided. When calling any helper function, only provide a RFC8259 compliant JSON request (no additional text or formatting).
+
+  You will get a simulator description to code a **`forward` function** accessed via a **`step` function**.
+
+  COVID SIR environment.
+
+  Here you must model the simulation step with the below state and action of
+
+  The environment state is represented by a dictionary:
+  "S": int, "I": int, "R": int
+
+  Action: None = None
+
+  The collected trajectory lasts for 60 time steps (days).
+
+  Modelling goals:
+  * The two parameters of the simulator will be optimized to an observed training state-action dataset with the given simulator using simulation-based Inference.
+  * The observed training dataset has very few samples, and the model must be able to generalize to unseen state-action data.
+
+  Requirement Specification:
+  * The code generated should achieve the best possible validation performance under several metrics.
+  * The code generated should be interpretable, and fit the dataset as accurately as possible.
+
+signature_description: |
+  The environment state is represented by a dictionary:
+  "S": int, "I": int, "R": int
+
+  Action: None = None
+
+task_description: |
+  Useful to know:
+
+  * The generated code must include the complete `step` and `forward` function body, fully functional, no placeholders.
+  * You are a code evolving machine, and you will be called improve the code to achieve the best possible validation performance.
+  * The model defines the possibly stochastic transition function taking the full state, action and predicting the next state, and will be used to fit the observed training dataset.
+  * You can use two external parameters.
+  * It is preferable to decompose the system into compartments if possible.
+  * You can use any unary functions, for example log, exp, power etc.
+  * You can use numpy and pytorch sampling distributions.
+  * Under no circumstance can you change the skeleton code function definitions, only fill in the code.
+  * Make sure your code follows the exact code skeleton specification.
+  * When defining categorical distributions that are parameterized make it so that the probabilities are automatically normalized as they will be sampled as random values. I.e. normalize the probabilities within the forward function.
+                                        
+          
+  Think step-by-step, and then give the complete full working code.

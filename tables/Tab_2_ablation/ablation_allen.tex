@@ -1,0 +1,29 @@
+\begin{table}[ht]
+\centering
+\caption{}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{llr}
+\toprule
+Axis & Variant&$-\log p(x_o|m) (\downarrow)$\\
+\midrule
+Default&&256.00 {\scriptsize [255.05, 262.03]}\\
+\midrule
+Weighting&MSE weights&264.65 {\scriptsize [250.90, 341.82]}\\
+\midrule
+Simulations&1000&270.07 {\scriptsize [250.34, 292.69]}\\
+&500&263.89 {\scriptsize [254.03, 284.50]}\\
+&200&266.91 {\scriptsize [264.11, 292.58]}\\
+\midrule
+Prompt&Reduced&262.18 {\scriptsize [249.96, 282.15]}\\
+\midrule
+Feedback&LLM + metrics&\underline{254.82} {\scriptsize [233.71, 262.89]}\\
+&Metrics only &258.30 {\scriptsize [245.49, 262.89]}\\
+\midrule
+Pool size&$N=150,K=5$&267.01 {\scriptsize [260.03, 278.91]}\\
+&$N=10,K=75$&258.25 {\scriptsize [254.10, 277.81]}\\
+&$N=5,K=150$&\underline{248.02} {\scriptsize [237.97, 267.01]}\\
+\midrule
+LLM&GPT-5 mini&\underline{254.49} {\scriptsize [242.22, 256.04]}\\
+\bottomrule
+\end{tabular}
+\end{table}

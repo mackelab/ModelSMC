@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The neg_avg_log_marginal_NLE of 23.9 (total 239 across 10 observations) indicates severe model-data mismatch. The primary cause is that the X2 parameter slot (params[:,7]) is entirely unused, leaving a second free conductance channel unimplemented despite the evaluation framework allocating two tunable slots. A single M-current lacks the degrees of freedom to simultaneously match spike count, resting potential statistics (mean/SD), voltage variance, skewness, and kurtosis. Additionally, the tau_p range [1e-4, 3000] ms allows effectively instantaneous kinetics that defeat the purpose of a slow M-type channel.",
+  "issues": [
+    {
+      "description": "The X2 channel slot (params[:,7] as conductance, params[:,9] already used by M-current) is completely unused. With only one added channel, the model cannot simultaneously fit all seven summary statistics. An A-type K+ current (I_A) using params[:,7] as gbar_A would complement the M-current: I_A has fast activation (~1-5 ms), voltage-dependent inactivation, and activates sub-threshold, directly controlling spike threshold, first-spike latency, and ISI regularity in tonic spiking neurons without introducing bursting dynamics. The fixed parameters for I_A (E_A = E_K = -107 mV, half-activation near Vt+5 mV, half-inactivation near Vt-20 mV, tau_a~1ms, tau_b~15ms) can all be hardcoded as physiological constants.",
+      "severity": "critical",
+      "location": "params[:, 7] extraction block and simulation loop \u2014 currently commented out as '# not used in this iteration'",
+      "suggestion": "Implement I_A using params[:,7] as gbar_A with fixed kinetics: a_inf(V) = 1/(1+exp(-(V-Vt-5)/10)), b_inf(V) = 1/(1+exp((V-Vt+20)/6)), tau_a=1.0ms, tau_b=15.0ms. Add I_A = gbar_A * a^3 * b * (V - E_K) to the voltage update numerator and denominator, with exponential Euler updates for gating variables a and b initialized to steady state."
+    },
+    {
+      "description": "tau_p = params[:,9] has an allowable range of [1e-4, 3000] ms. When the SBI posterior explores tau_p << dt (e.g., 0.001 ms with dt~0.025 ms), Exp(-dt/tau_p) collapses to ~0 and p tracks p_inf instantaneously, making the M-current behave as a fast rectifier and destroying its slow-kinetics regulatory role. This creates a degenerate likelihood surface and hampers posterior inference for gbar_M.",
+      "severity": "major",
+      "location": "tau_p extraction line: `tau_p = params[:, 9].float()` and p-gate update: `p[:, i] = p_inf_prev + (p_prev - p_inf_prev) * Exp(-tstep / tau_p)`",
+      "suggestion": "Clamp tau_p to a physiologically meaningful minimum: `tau_p = params[:, 9].float().clamp(min=10.0)`. This ensures M-current always operates in the slow (10\u20133000 ms) regime, preserving its role as a spike-frequency adaptation current and giving the SBI engine a well-behaved, monotone relationship between tau_p and summary statistics like spike count and ISI regularity."
+    }
+  ]
+}

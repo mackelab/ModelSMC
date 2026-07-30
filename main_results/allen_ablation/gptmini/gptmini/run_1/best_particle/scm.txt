@@ -1,0 +1,5 @@
+- V(t) <- instantaneous conductances [gNa*m^3*h, gK*n^4, g_leak, g_X1*p] and input current I_inj; additive process noise enters the driving term.  
+- m,h,n gating dynamics <- voltage-dependent alpha/beta HH rates (depend on V and Vt); p (new) <- slow, non-inactivating activation controlled by V and (V_half=param_i, tau_base=param_j).  
+- Tunable causal parameters: gbar_X1 and param_i,param_j set p_inf(V) and tau_p(V); gbar_X2 unused to preserve parsimony.  
+- Core assumptions: a single slow M-type K current (non-inactivating) suffices to reduce spike-frequency mismatch without producing bursting.  
+- Observations: batched V traces used for summary statistics; noise model unchanged (process noise scaled as in signature).

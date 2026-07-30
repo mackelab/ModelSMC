@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered), N = S+I+R (conserved total population)
+- **Parameters**: β = parameters[0] ∈ [0.05, 0.50] (transmission rate), γ = parameters[1] ∈ [0.02, 0.20] (recovery rate)
+- **S → I**: new_infections ~ Binomial(S, 1−exp(−β·I/N)), exact discrete-time exponential-hazard infection kernel
+- **I → R**: new_recoveries ~ Binomial(I, 1−exp(−γ)), exact discrete-time constant-hazard recovery kernel
+- **Assumptions**: closed population, canonical discrete-population stochastic SIR, recoveries from original I only, COVID-realistic tight parameter bounds

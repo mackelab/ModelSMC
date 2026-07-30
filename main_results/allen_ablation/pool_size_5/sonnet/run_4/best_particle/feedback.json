@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The primary failure is that all editable sections in the simulation loop remain empty: the additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from `params` but never used anywhere in the simulation. The model therefore runs as a plain 3-channel HH (Na, K, leak) regardless of what the inference engine sets those parameters to, explaining the large negative log-likelihood values.",
+  "issues": [
+    {
+      "description": "All four '# BEGIN EDITABLE SECTION' blocks are completely empty. Parameters gbar_X1, gbar_X2, param_i, and param_j are extracted but have zero effect on the voltage trace. The inference procedure cannot compensate for a missing channel by tuning parameters that the simulator ignores, leading to a persistent systematic mismatch for all summary statistics.",
+      "severity": "critical",
+      "location": "All five `# BEGIN EDITABLE SECTION` blocks inside `forward()`, specifically the kinetics section, state-variable declarations, initialization, the loop update, and the tau_V_inv / V_inf expressions.",
+      "suggestion": "Implement an M-type (slow, non-inactivating) potassium current using channel slot X1. It requires one gating variable `p` and naturally supports tonic, regularly-spaced spiking without inducing bursting. Use `param_i` (negated, range \u2248 \u2212150 to 0 mV) as the half-activation voltage `V_half` and `param_j` (negated, range \u2248 \u22123000 to 0) as a time-constant scale `tau_scale`. Kinetics: (1) In the kinetics block add `def p_inf(x): return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))` and `def tau_p_func(x): return torch.abs(param_j) / (3.3 * (Exp((x - param_i) / 40.0) + Exp(-(x - param_i) / 40.0)) + 1e-6)`. (2) Declare `p = torch.zeros((batch_size, time_steps), device=device)`. (3) Initialize `p[:, 0] = p_inf(V[:, 0])`. (4) In the loop update add `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p_func(V[:, i-1]))`. (5) Add `+ gbar_X1 * p[:, i-1]` to `tau_V_inv` and `+ gbar_X1 * p[:, i-1] * E_K` to the numerator of `V_inf`. This gives the inference engine a slow adaptation conductance to fit spike-count, mean-voltage, and higher-order statistics simultaneously."
+    },
+    {
+      "description": "gbar_X2 is extracted but there is no second channel implemented. While model parsimony is desirable, if the M-current alone is insufficient to match resting-potential std-dev and voltage kurtosis, gbar_X2 is wasted capacity that the inference engine cannot exploit.",
+      "severity": "suggestion",
+      "location": "Parameter extraction line `gbar_X2 = params[:, 7].float()` and the corresponding empty editable sections.",
+      "suggestion": "After verifying that the M-current (X1) resolves the main discrepancy, consider adding a small leak-like or slow inward conductance for X2 only if residual mismatch remains in the resting-potential statistics. A simple persistent sodium (NaP) current with fixed half-activation and a single gating variable would be a minimal addition: `r_inf(x) = 1 / (1 + Exp(-(x + 57) / 6.2))`, `gbar_X2 * r_inf(V[:, i-1])` added to tau_V_inv and `gbar_X2 * r_inf(V[:, i-1]) * E_Na` to V_inf numerator. Keep X2 conductance near zero unless metrics show clear remaining bias."
+    }
+  ]
+}

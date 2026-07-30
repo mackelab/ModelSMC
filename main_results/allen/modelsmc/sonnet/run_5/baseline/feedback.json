@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel conductances (gbar_X1, gbar_X2) and their parameters (param_i, param_j) are extracted from params but are never used anywhere in the simulation \u2014 no kinetics, no state variables, no current contributions. This means the model is effectively still the vanilla three-channel HH regardless of what values the inference assigns to those parameters, preventing any improvement beyond the base model.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted but completely unused. No kinetic functions, state variables, or current terms are added for X1 or X2, so those parameter slots have zero effect on the output voltage. The posterior cannot find a good fit because the model lacks the necessary flexibility to match the data's tonic spiking statistics (spike count, resting potential distribution, voltage variance/skewness).",
+      "severity": "critical",
+      "location": "All four '# ===== BEGIN EDITABLE SECTION =====' blocks in the forward() method",
+      "suggestion": "Implement at least one additional channel \u2014 a slow M-type potassium current is a natural choice for regular tonic firing. Add: (1) an activation variable p with kinetics alpha_p/beta_p (e.g., p_inf = 1/(1+exp(-(V-param_i)/10)), tau_p = param_j / (alpha_p + beta_p)); (2) initialize p[:, 0] at steady-state; (3) in the loop compute alpha_p/beta_p and update p[:, i]; (4) add gbar_X1 * p[:, i-1] * (V[:, i-1] - E_K) contributions to both tau_V_inv (conductance term) and V_inf (reversal potential term). Use param_i for the half-activation voltage (negated, already in range) and param_j for a slow time-constant scale."
+    },
+    {
+      "description": "param_i and param_j are negated upon extraction (e.g., param_i = -params[:, 8]) even though the docstring says the raw params are positive. If these are intended as voltage half-activation points (e.g., around -35 to -50 mV), the negation is likely correct, but if they serve as time-constant scales the sign flip produces negative time constants, causing Exp(-tstep / tau) to diverge. This ambiguity needs to be resolved once the channels are implemented.",
+      "severity": "major",
+      "location": "param_i = -params[:, 8], param_j = -params[:, 9]",
+      "suggestion": "Decide the physical role of each extra parameter before negating. For a half-activation voltage (typical range -60 to -20 mV), negation is appropriate. For a time-constant multiplier (must be positive), do NOT negate: use param_i = params[:, 8] directly. Document units clearly. For the M-current suggestion above, use param_i (negated, ~-35 mV) as the half-activation voltage and param_j (NOT negated) as a slow time-constant scale (e.g., tau_p = param_j / (alpha_p + beta_p)) clamped to remain positive."
+    }
+  ]
+}

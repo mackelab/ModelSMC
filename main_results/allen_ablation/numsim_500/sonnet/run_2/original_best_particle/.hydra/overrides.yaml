@@ -1,0 +1,3 @@
+- seed=2
+- method.optimizer.num_simulations=500
+- +experiment=ablation_allen_modelsmc_sonnet_numsim_500

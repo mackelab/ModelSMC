@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) are fully allocated with extracted parameters (gbar_X1, gbar_X2, param_i, param_j) but are **never implemented anywhere** in the simulation. No kinetics functions, state variables, initialization, loop updates, or current contributions are added. The model therefore behaves as a bare HH model regardless of what the optimizer does with params[:, 6-9], wasting four free parameters and leaving the model unable to match experimental statistics.",
+  "issues": [
+    {
+      "description": "Channel X1 is allocated and extracted (gbar_X1, param_i, param_j) but has zero effect on the simulation. All four editable sections that should contain its kinetics, state variable, initialization, loop update, and current contribution are empty. This means the optimizer cannot improve fit by adjusting these parameters.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks (kinetics, state variable declaration, initialization, loop alpha/beta, tau_V_inv/V_inf)",
+      "suggestion": "Implement a slow voltage-gated K+ channel (M-current / Kv7) as X1, appropriate for tonic spiking: (1) In the kinetics section add `p_inf = lambda x: 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))` and a slow time constant `tau_p = lambda x: param_j / (3.3 * (Exp((x - param_i) / 40.0) + Exp(-(x - param_i) / 20.0)) + 1e-6)` where param_i acts as the half-activation voltage (~-35 mV, param_i is already negated so use directly) and param_j scales the time constant. (2) Declare state tensor `p = torch.zeros(...)`, initialize `p[:, 0] = p_inf(V[:, 0])`. (3) In the loop compute `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p(V[:, i-1]))`. (4) Add `+ gbar_X1 * p[:, i-1]` to tau_V_inv and `+ gbar_X1 * p[:, i-1] * E_K` to V_inf numerator (using E_K as reversal potential for K+ M-current)."
+    },
+    {
+      "description": "param_i and param_j are negated upon extraction (param_i = -params[:, 8], param_j = -params[:, 9]) but since raw params are constrained positive, these become negative values representing voltages/time-scale parameters. Without any channel implementation referencing them, the negation convention is irrelevant and the parameters are dead. Additionally, gbar_X2 is extracted but if only one channel is needed, it must not accidentally contribute undefined currents.",
+      "severity": "major",
+      "location": "Parameter extraction block (lines: `param_i = -params[:, 8]`, `param_j = -params[:, 9]`) and all editable sections",
+      "suggestion": "Once X1 (M-current) is implemented using param_i as the half-activation voltage and param_j as the time-constant scale, verify that the negation yields physiologically reasonable values: param_i should land near -20 to -45 mV (optimizer will find this) and param_j near 50\u2013500 (ms scale). Leave gbar_X2 extracted but do not add X2 unless metrics remain poor after adding X1, to maintain model parsimony as specified. If X2 is not used, simply do not reference gbar_X2 in the current equations."
+    }
+  ]
+}

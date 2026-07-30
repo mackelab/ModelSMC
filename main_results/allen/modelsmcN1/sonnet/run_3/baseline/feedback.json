@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The critical failure is that parameters gbar_X1, gbar_X2, param_i, and param_j are extracted from the params tensor but are never used anywhere in the simulation. No kinetics functions are defined for the additional channels, and no current contributions are added to tau_V_inv or V_inf. The simulator is therefore a plain vanilla HH model regardless of what values those parameters take, severely limiting its ability to fit the experimental data (neg_avg_log_marginal_NLE=25.6 indicates poor match). For tonic, regular spiking, adding an M-current (slow non-inactivating voltage-gated K+ channel) in the X1 slot is the appropriate minimal extension.",
+  "issues": [
+    {
+      "description": "Parameters gbar_X1 (and optionally gbar_X2, param_i, param_j) are extracted but have zero effect on the simulation. No kinetics functions, no state variables, and no current terms are implemented for the additional channel slots. The model is structurally identical to vanilla HH regardless of those parameter values.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs are empty; gbar_X1/gbar_X2/param_i/param_j are defined but never referenced in kinetics, state init, the simulation loop, tau_V_inv, or V_inf.",
+      "suggestion": "Implement an M-current (IM) using gbar_X1 as its conductance. (1) Define kinetics: `def alpha_p(x): v1 = x - param_i; return 3.3e-3 * Exp(0.04 * v1)` and `def beta_p(x): v1 = x - param_i; return 3.3e-3 * Exp(-0.04 * v1)` where param_i acts as a tunable half-activation shift (negative values from code give ~-35 mV range). (2) Add state variable `p` initialized to `inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`. (3) In the loop compute `a_p, b_p = alpha_p(V[:,i-1]), beta_p(V[:,i-1])` and update `p[:,i] = inf_x(a_p,b_p) + (p[:,i-1]-inf_x(a_p,b_p))*Exp(-tstep/tau_x(a_p,b_p))`. (4) Add `+ gbar_X1 * p[:,i-1]` to tau_V_inv (divided by C) and `+ gbar_X1 * p[:,i-1] * E_K` to V_inf numerator."
+    },
+    {
+      "description": "Without any slow adaptation current, the model cannot reproduce the correct inter-spike interval regularity, mean stimulation voltage, variance, skewness, and kurtosis that characterise tonic spiking. The mismatch in higher-order statistics (variance, skewness, kurtosis) is a signature of missing slow K+ dynamics that modulate sub-threshold voltage between spikes.",
+      "severity": "major",
+      "location": "V_inf and tau_V_inv computation blocks; also state variable initialisation at t=0.",
+      "suggestion": "After adding the M-current gating variable p (see Issue 1), use param_j as a multiplicative scaling of the M-current time constant if further tuning is needed: replace the standard `tau_x(a_p, b_p)` with `param_j * tau_x(a_p, b_p)` (param_j is negated from a positive range [1e-4, 3000], giving a wide time-scale range suitable for slow currents on the order of tens to hundreds of ms). This single additional degree of freedom gives the inference enough flexibility to match the regularity of tonic spiking without introducing burst-promoting mechanisms."
+    }
+  ]
+}

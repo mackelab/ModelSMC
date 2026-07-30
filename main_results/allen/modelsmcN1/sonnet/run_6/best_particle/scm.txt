@@ -1,0 +1,5 @@
+- Variables: V (membrane voltage), m/h (Na⁺ gates), n (K⁺ gate), p_inf (INaP quasi-instantaneous activation, no inactivation), z (IKM M-gate ODE)
+- Causal chain: I_inj → dV/dt ← I_Na(m³h) + I_K(n⁴) + I_leak + I_NaP(p_inf) + I_KM(z) + noise
+- INaP (X1): gbar_NaP=params[:,6]×(0.12/10); V_half_NaP=−48+params[:,8]×(8/150)∈[−48,−40] mV; slope=5 mV; quasi-instantaneous (NO q-inactivation reverted); p_inf(−65,V_half=−48)≈0.023 [negligible resting activation] ✓
+- IKM (X2): gbar_KM=params[:,7]×(0.5/120); **V_half_KM=−50+params[:,9]×(10/3000)∈[−50,−40] mV** [redesigned]; slope=10 mV; **tau_z=500 ms** [increased from 75ms per feedback]; z[:,0]=0; z_rest_after_300ms≈z_inf(V_rest)×(1−exp(−300/500))≤0.082 [<9%]; accumulates across spikes since tau_z>>ISI ✓
+- **Two targeted fixes (iter 38)**: (a) INaP q-inactivation removed — tau_q=200ms caused chronic q-depletion during tonic firing making INaP near-zero; (b) IKM tau_z 75ms→500ms + V_half range [−35,−15]→[−50,−40] mV — at 75ms IKM fully reset each ISI giving negligible adaptation; at 500ms z accumulates across spikes providing genuine frequency regulation

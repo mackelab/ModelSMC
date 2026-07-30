@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator is missing a slow non-inactivating potassium channel (M-current, IKM) that is essential for reproducing regular tonic spiking dynamics. The high neg_avg_log_marginal_NLE (27.1) indicates systematic mismatch in spike count, inter-spike interval regularity, and voltage distribution statistics. The editable sections are entirely empty \u2014 no additional channel has been implemented despite the clear need indicated by the metrics.",
+  "issues": [
+    {
+      "description": "No additional ion channel has been implemented in any of the editable sections. The slow M-type potassium current (IKM) is absent, which is the most likely missing mechanism for regular tonic spiking without bursting. Without it, the model cannot reproduce correct spike frequency, resting potential statistics, or voltage distribution shape (mean, variance, skewness, kurtosis).",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks \u2014 kinetics, state variable declaration, initialization, loop update, and tau_V_inv/V_inf terms",
+      "suggestion": "Implement the M-current (slow non-inactivating K+ channel) using gbar_X1 as its conductance and param_i as the half-activation voltage offset. Add the following across the editable sections: (1) Kinetics: def w_inf(x): return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0)); def tau_w_val(x): return 1.0 / (0.001 * (Exp((x - param_i) / 20.0) + Exp(-(x - param_i) / 20.0))) + 1.0; (2) State variable: w = torch.zeros((batch_size, time_steps), device=device); (3) Init: w[:, 0] = w_inf(V[:, 0]); (4) Loop: w[:, i] = w_inf(V_prev) + (w[:, i-1] - w_inf(V_prev)) * Exp(-tstep / tau_w_val(V_prev)); (5) tau_V_inv term: + w[:, i-1] * gbar_X1; (6) V_inf term: + w[:, i-1] * gbar_X1 * E_K. This adds slow K+ adaptation that regularizes tonic firing and improves all seven summary statistics simultaneously."
+    },
+    {
+      "description": "The param_j parameter (range mapped to large negative values up to -3000) is unused and could provide critical flexibility for the M-current time constant scaling or a second small conductance mechanism if gbar_X2 is also needed. Leaving both X2 and param_j unused wastes model capacity that the inference engine is allocating.",
+      "severity": "major",
+      "location": "params[:, 7] (gbar_X2) and params[:, 9] (param_j) \u2014 never referenced after extraction",
+      "suggestion": "After implementing the M-current with gbar_X1 and param_i, evaluate whether metrics improve sufficiently. If spike count or resting potential statistics remain off, consider using gbar_X2 for a small persistent sodium current (INaP) with a fixed half-activation near -55 mV: I_NaP = gbar_X2 * m_p_inf(V) * (V - E_Na) where m_p_inf(V) = 1/(1 + exp(-(V+55)/5)). Add its contribution to tau_V_inv (+ gbar_X2 * m_p_inf) and V_inf (+ gbar_X2 * m_p_inf * E_Na). Use param_j to scale the M-current time constant if needed: tau_w_val uses abs(param_j)/1000 as a multiplicative factor, allowing the optimizer to find the correct slow-activation timescale."
+    }
+  ]
+}

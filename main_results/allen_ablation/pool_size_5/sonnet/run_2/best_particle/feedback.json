@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The IKM (M-type K+) channel introduces spike-frequency adaptation \u2014 progressively decreasing firing rates \u2014 which directly conflicts with the 'evenly-spaced action potentials' tonic spiking described in the data. This systematic mismatch distorts spike count, voltage skewness, and kurtosis metrics across all stimulus conditions. Concurrently, the X2 channel slot remains entirely unused, leaving exploitable model capacity idle that could address residual distribution shape discrepancies (variance, kurtosis).",
+  "issues": [
+    {
+      "description": "IKM produces spike-frequency adaptation (non-uniform ISIs with progressive rate decrease), which is physiologically incompatible with the target data's 'evenly-spaced action potentials without burst patterns.' The optimizer cannot fully compensate because even a small gbar_KM introduces ISI lengthening that systematically biases spike count and voltage distribution shape metrics. The optimizer may converge to non-zero gbar_KM values that are locally optimal but globally harmful to ISI regularity.",
+      "severity": "critical",
+      "location": "gbar_KM = params[:, 6] and p-gate integration block (p[:, i] update)",
+      "suggestion": "Replace IKM with a persistent sodium current (INaP): I_NaP = gbar_NaP * m_p_inf(V) * (V - E_Na), where m_p_inf(V) = 1/(1+exp(-(V - V_half_NaP)/5)) with V_half_NaP \u2208 [-60,-45] mV (tunable via params[:,8]). INaP boosts subthreshold excitability uniformly across spikes without causing adaptation, directly improving mean voltage during stimulation and spike count accuracy while preserving ISI regularity. gbar_NaP uses params[:,6], V_half_NaP uses params[:,8]."
+    },
+    {
+      "description": "The X2 slot (params[:,7]) is entirely unused, leaving the model without a second tunable channel to correct residual mismatches in voltage variance and distribution kurtosis. Given the high neg_avg_log_marginal_NLE (24), the model needs additional capacity to capture fine voltage distribution features. A slow afterhyperpolarization mechanism with fixed kinetics and only the conductance tunable via params[:,7] could regularize inter-spike voltage trajectory without introducing adaptation or bursting.",
+      "severity": "major",
+      "location": "params[:, 7] is never used in the forward() method",
+      "suggestion": "Implement a leak-like slow K+ afterhyperpolarization (sAHP) current in the X2 slot: I_sAHP = params[:,7] * (V - E_K) with a fixed activation function h_sAHP that activates only above -20 mV (spike peak detection) and decays with a fixed tau=50 ms. This uses params[:,7] as conductance, adds no extra tunable parameters, provides uniform post-spike hyperpolarization that stabilizes ISI regularity, and directly corrects voltage variance and kurtosis discrepancies without causing bursting or sustained high-frequency dynamics."
+    }
+  ]
+}

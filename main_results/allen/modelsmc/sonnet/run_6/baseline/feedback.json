@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel conductances (gbar_X1, gbar_X2) are extracted from params but their kinetics, state variables, and current contributions are never implemented anywhere in the simulation. All 'EDITABLE SECTION' blocks remain empty, leaving the model as a plain 3-channel HH neuron with unused parameters. This structural gap is the primary driver of the high neg_avg_log_marginal_NLE (27.4), as the model cannot capture the experimental neuron's tonic firing dynamics.",
+  "issues": [
+    {
+      "description": "gbar_X1 (and gbar_X2) are extracted from params but never used. All EDITABLE SECTION blocks are empty, so no additional channel current enters tau_V_inv or V_inf, no state variable is allocated or updated, and no kinetics are defined. The optimizer has 4 extra free parameters (gbar_X1, gbar_X2, param_i, param_j) that have zero effect on the output, making inference ill-conditioned and the model misspecified.",
+      "severity": "critical",
+      "location": "All six '# ===== BEGIN EDITABLE SECTION =====' blocks throughout the forward() method",
+      "suggestion": "Implement a slow M-type K+ current (single non-inactivating gate 'p') using gbar_X1 and param_i as a tunable half-activation offset. (1) In the kinetics section add: `def alpha_p(x): v1 = x - Vt + param_i + 35.0; return 0.0001 * efun(-0.1 * v1) / 0.1` and `def beta_p(x): v1 = x - Vt + param_i + 35.0; return 0.0001 * Exp(-v1 / 80.0)`. (2) Allocate `p = torch.zeros((batch_size, time_steps), device=device)` and initialise `p[:, 0] = inf_x(alpha_p(V[:, 0]), beta_p(V[:, 0]))`. (3) In the loop compute `a_p, b_p = alpha_p(V[:, i-1]), beta_p(V[:, i-1])`. (4) Add `+ p[:, i-1] * gbar_X1` to tau_V_inv and `+ p[:, i-1] * gbar_X1 * E_K` to the numerator of V_inf. (5) Update `p[:, i] = inf_x(a_p, b_p) + (p[:, i-1] - inf_x(a_p, b_p)) * Exp(-tstep / tau_x(a_p, b_p))`. Keep gbar_X2 at zero (or omit) to maintain parsimony, since the data shows simple tonic spiking with no bursting."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (`-params[:, 8]` and `-params[:, 9]`), but the inference engine supplies strictly positive values in [1e-4, 150] and [1e-4, 3000]. This means they are always \u2264 0, halving the effective search space and making any voltage-offset or time-constant parameter systematically biased toward non-physiological ranges before any channel is even implemented.",
+      "severity": "major",
+      "location": "Lines: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Remove the negation so the parameters span their intended positive range: `param_i = params[:, 8].float()` and `param_j = params[:, 9].float()`. If a negative offset is needed (e.g., to shift half-activation below rest), apply the sign explicitly inside the kinetics function (e.g., `x - Vt - param_i`) rather than globally flipping the extracted value, so the inference engine can explore the full [1e-4, 150] domain."
+    }
+  ]
+}

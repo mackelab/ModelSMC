@@ -1,0 +1,7 @@
+api_key_name: "ANTHROPIC_API_KEY"
+max_tokens: 12000
+temperature: 1.0
+cache: False
+# Anthropic adaptive thinking: {"type": "adaptive", "effort": "low"|"medium"|"high"|"max"}
+# Requires temperature=1.0. "max" effort is Opus 4.6 only.
+thinking: null

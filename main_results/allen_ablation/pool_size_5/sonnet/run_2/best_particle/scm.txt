@@ -1,0 +1,5 @@
+- **Variables**: V (membrane potential), m/h (Na⁺ gates), n (K⁺ DR gate), p (M-current slow gate)
+- **Causal dependencies**: V ← I_Na(m,h) + I_K(n) + I_KM(p) + I_leak + I_inj + noise
+- **p-gate**: Boltzmann steady-state with V_half_M ∈ [−40, −20] mV (silent at rest −65 mV, p_inf ≈ 0.006–0.07)
+- **τ_p ∈ [20, 170] ms**: slow M-current adaptation spanning full optimizer-accessible range
+- **E_K corrected to −80 mV** (from −107 mV): prevents pathological AHP depth; physiologically standard

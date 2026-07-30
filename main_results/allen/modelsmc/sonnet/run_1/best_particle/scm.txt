@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current (X1), injected current, noise
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation relative to Vt
+- **n** (K⁺ delayed-rectifier gate): medium-speed activation relative to Vt
+- **p** (M-current gate, X1): slow sigmoid K⁺ gate; V_half = Vt + |param_i| (~-35 mV, above rest); tau_max = |param_j| ms; un-normalised bell tau (iteration-3 convention restored)
+- **Assumptions**: tonic spiking, no bursting; X2 slot intentionally unused; two targeted fixes: (1) revert tau_p to un-normalised form restoring parameter regime that achieved NLE 25.2; (2) drop Ih which caused critical regression by being active at rest (~27% open at -65 mV)

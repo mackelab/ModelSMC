@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current rate functions (alpha_p/beta_p) use unclamped positive exponentials that can overflow or produce excessively large rates during action potentials, and the tau_M_scale parameterisation (tau_M_scale = -params[:,9] in the denominator of both rates) allows degenerate near-zero values during inference, making p converge instantaneously and causing extreme tau_V_inv values that break the exponential integrator.",
+  "issues": [
+    {
+      "description": "The Exp helper clamps only negative overflow (z < -500), but alpha_p and beta_p call Exp(0.04*v1) and Exp(-0.04*v1) without any upper-bound clamp. During an action potential (V ~ +40 mV) with V_half_M ~ -35 mV, v1 ~ 75 mV giving Exp(3) which is fine, but if inference drives V_half_M toward -100 mV, v1 can reach ~140 mV \u2192 Exp(5.6) ~ 270, and dividing by a small tau_M_scale compounds this into a rate that dominates tau_V_inv, driving V_inf toward E_K (-107 mV) every step and collapsing spike generation. Additionally, when tau_M_scale approaches zero (allowed by the negative-parameter convention), alpha_p and beta_p diverge to infinity, making the exponential integration of p and the voltage update numerically meaningless.",
+      "severity": "critical",
+      "location": "alpha_p / beta_p functions and their use in tau_V_inv / V_inf computation",
+      "suggestion": "Replace the alpha/beta exponential formulation with an explicit steady-state sigmoid and a separate clamped time constant: p_inf = torch.sigmoid(0.08*(x - V_half_M)); tau_p = torch.clamp(tau_M_scale / (2.0 * torch.cosh(torch.clamp(0.04*(x - V_half_M), min=-30, max=30))), min=1.0, max=2000.0). This decouples activation range from kinetics, prevents divergence, and lets inference independently tune the half-activation and the time scale without rate blow-up. Apply the same torch.clamp on tau_M_scale itself (min=1.0 ms) to guard against degenerate near-zero values supplied by the sampler."
+    },
+    {
+      "description": "The X2 parameter slot (params[:,7]) is allocated but entirely unused, leaving a free inferred parameter that the posterior sampler still explores without any gradient signal. This inflates the effective parameter-space dimensionality, worsens posterior concentration, and raises the neg_log_marginal_NLE without any modelling benefit. Simultaneously, the fixed slope factor 0.04 mV\u207b\u00b9 in alpha_p/beta_p (yielding a 12.5 mV activation width) is hard-coded rather than inferred, yet M-current slope varies across preparations and is a key determinant of the degree of spike-frequency adaptation and resting potential stability.",
+      "severity": "major",
+      "location": "params[:,7] (unused X2 slot) and the hard-coded 0.04 slope in alpha_p/beta_p",
+      "suggestion": "Re-purpose the X2 slot to infer the M-current activation slope: k_M = params[:,7].float() (keep positive via abs or a softplus transform), then replace the hard-coded 0.04 with k_M/2 in the steady-state sigmoid p_inf = torch.sigmoid(k_M * (x - V_half_M)) and in the tau_p cosh argument. This removes the wasted dimension from the posterior, gives the inference algorithm an additional degree of freedom that directly affects the metrics (spike count, voltage variance, skewness), and keeps the total number of inferred parameters unchanged."
+    }
+  ]
+}

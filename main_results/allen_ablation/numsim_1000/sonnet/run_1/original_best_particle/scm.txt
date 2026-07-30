@@ -1,0 +1,5 @@
+- **V** (membrane voltage) ← I_Na, I_K, I_leak, I_M, I_inj, noise
+- **m, h** (Na⁺ gates) ← V via alpha/beta voltage-dependent kinetics
+- **n** (K⁺ gate) ← V via alpha/beta voltage-dependent kinetics
+- **p** (M-current gate) ← V via slow Boltzmann activation, constant tau_p
+- **Key assumptions**: tonic spiking (no bursting); M-current adds spike-frequency adaptation via slow non-inactivating K⁺; single new gating variable p; reversal potential and time constant inferred from data

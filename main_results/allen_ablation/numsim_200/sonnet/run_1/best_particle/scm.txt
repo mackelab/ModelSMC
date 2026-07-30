@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-type K⁺ current, and injected current
+- **m, h** (Na⁺ gates): voltage-dependent fast activation/inactivation → spike upstroke/repolarization
+- **n** (K⁺ delayed rectifier gate): slow activation → spike repolarization and AHP
+- **p** (M-current gate): slow, non-inactivating K⁺ activation; gbar_M from params[:,6], V_half_M from -params[:,7], tau_max fixed at 150 ms
+- **Assumptions**: single-compartment, exponential Euler integration, additive Gaussian noise, tonic (non-bursting) firing regime

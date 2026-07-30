@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Critical parameter slot mismatch: The M-current uses params[:,6] (correct X1 conductance), but then skips params[:,7] entirely and incorrectly re-maps params[:,8] as E_M and params[:,9] as tau_p_M. Since X1 slot = params[6,7] and X2 slot = params[8,9], the inference engine assigns parameter bounds calibrated for conductances (e.g. [1e-4,10] mS/cm\u00b2) to params[:,8] and params[:,9], but the code interprets params[:,8] as a reversal potential (expected ~-80 mV) and params[:,9] as a time constant (expected ~50-300 ms). This catastrophic range mismatch is the primary driver of the high neg_avg_log_marginal_NLE (~24.5).",
+  "issues": [
+    {
+      "description": "params[:,7] (X1 slot second parameter) is silently ignored while params[:,8] and params[:,9] (X2 slot parameters) are co-opted for E_M and tau_p_M respectively. The inference posterior assigns X2-slot prior bounds (conductance-like ranges) to these indices, so E_M and tau_p_M receive completely wrong numerical values during inference, corrupting all M-current dynamics and producing unrealistic voltage traces.",
+      "severity": "critical",
+      "location": "Lines assigning gbar_M, E_M, tau_p_M from params[:,6], params[:,8], params[:,9]",
+      "suggestion": "Restructure parameter assignment to respect slot boundaries: use params[:,6] for gbar_M and params[:,7] for tau_p_M (both within X1 slot). Fix E_M to a physiological K\u207a reversal potential (e.g. E_K = -80.0 mV or reuse the existing E_K constant) rather than inferring it from a mismatched X2 slot index. This ensures the inference engine's priors match the physical meaning of each parameter."
+    },
+    {
+      "description": "The M-gate time constant tau_p_M is treated as a batch-vector (batch_size,) but is divided directly in the exponential Euler step `Exp(-tstep / tau_p_M)` without any clamping against zero or negative values. If the inference proposes tau_p_M \u2264 0 (plausible given the wrong prior range from the X2 slot), this produces NaN/Inf voltages that silently propagate through the simulation, returning garbage traces and inflating the NLE.",
+      "severity": "major",
+      "location": "Line: `p[:, i] = p_ss + (p[:, i - 1] - p_ss) * Exp(-tstep / tau_p_M)`",
+      "suggestion": "Add a small epsilon clamp before the division: `tau_p_M_safe = torch.clamp(tau_p_M, min=1e-3)` and use `tau_p_M_safe` in the exponential Euler update. After fixing the parameter slot assignment (issue 1), tau_p_M will receive appropriate slow-timescale priors, but the clamp provides robustness during early inference exploration."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+- **V**: Membrane potential; driven by Na⁺, K⁺ (delayed rectifier), leak, M-current (Kv7), and injected current
+- **m, h**: Na⁺ channel activation/inactivation; standard voltage-dependent HH kinetics (Vt-shifted)
+- **n**: K⁺ delayed rectifier activation; standard HH kinetics
+- **p**: M-current (Kv7) slow K⁺ activation; gbar_M=params[:,6], V_half_M=−params[:,8] (TUNABLE, range ~−150 to 0 mV), tau_M=params[:,9] (positive, no negation)
+- **Assumptions**: E_K=−77 mV (corrected); single channel addition (parsimony); V_half_M inferred to avoid misspecification; X2 slot intentionally unused this iteration

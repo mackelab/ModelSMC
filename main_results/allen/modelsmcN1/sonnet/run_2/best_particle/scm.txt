@@ -1,0 +1,5 @@
+- **V**: membrane voltage driven by Na⁺ (m³h, E_Na=50mV LOCKED), K⁺ DR (n⁴, E_K=-85mV LOCKED), leak, M-type K⁺ (w, X1: gbar_M=softplus(p6)*0.1∈[~0.07,~1.0], tau_w=softplus(p7*0.3)*10+4ms∈[4,~404]ms, V_HALF=-35mV FROZEN), NaP (g_NaP=0.03 REVERTED, V_half=**-55.0mV RETRIED** shifted +2mV depolarized, k_NaP=softplus(p8)*0.1+1.0 TUNABLE); params[:,9] UNUSED
+- **m, h**: Na⁺ fast activation/inactivation (Mainen & Sejnowski α/β via efun); exponential Euler; no gate clamping CONFIRMED OPTIMAL
+- **n**: K⁺ delayed-rectifier (n⁴); exponential Euler; no clamping CONFIRMED OPTIMAL
+- **w**: M-type K⁺ (Kv7); decay_w HOISTED outside loop (tau_w voltage-independent CONFIRMED); w[:,0]=Boltzmann ss ESSENTIAL
+- **SINGLE CHANGE**: V_half_NaP shifted -57→-55 mV (reduces tonic NaP at rest: m_NaP_inf(-65mV) ≈ 0.26→0.22 at k_NaP=5mV; g_NaP reverted to 0.03; NaP amplitude fine-grid exhausted at both 0.02 and 0.03→same NLE=24.3)

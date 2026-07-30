@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator extracts four additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) but never integrates them into the voltage dynamics. No kinetics functions, no state variables, and no contributions to tau_V_inv or V_inf are implemented for these channels. The model therefore runs as a plain HH model with no fitting capacity for the extra degrees of freedom, leading to high NLE scores.",
+  "issues": [
+    {
+      "description": "gbar_X1 and param_i (reversal potential) are extracted but completely unused. No gating kinetics, no state variable, and no current contribution exists for the X1 channel slot. For regular tonic spiking, a slow M-type K+ current (IM) with a single gating variable `p` is a natural fit: it regulates inter-spike intervals without inducing bursting. The reversal potential param_i (negated, so ~-80 to -100 mV) is perfectly suited for a K+ channel.",
+      "severity": "critical",
+      "location": "EDITABLE SECTIONs inside the kinetics block, state variable block, initialization block, simulation loop (alpha/beta/kinetics), tau_V_inv, and V_inf computations",
+      "suggestion": "Add M-current kinetics and integrate into dynamics:\n\n(1) In the kinetics block:\n```python\ndef p_inf(x):\n    return 1.0 / (1.0 + Exp(-(x + 35.0) / 10.0))\ndef tau_p(x):\n    return 100.0 / (3.3 * Exp((x + 35.0) / 20.0) + Exp(-(x + 35.0) / 20.0))\nE_M = param_i  # already negated, tunable K+-like reversal\n```\n\n(2) Add state variable: `p = torch.zeros((batch_size, time_steps), device=device)`\n\n(3) Initialize: `p[:, 0] = p_inf(V[:, 0])`\n\n(4) In the loop, add to tau_V_inv:\n`+ gbar_X1 * p[:, i-1]`\n\n(5) In V_inf add:\n`+ gbar_X1 * p[:, i-1] * E_M`\n\n(6) Update gating variable:\n`p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p(V[:, i-1]))`"
+    },
+    {
+      "description": "gbar_X2 and param_j are also extracted but unused. If the M-current alone does not fully close the discrepancy (e.g., resting potential std or voltage variance remain off), a leak-like or slow inward current using gbar_X2 and param_j as a second reversal potential should be added. However, per the parsimony guideline, X2 should only be activated if X1 alone is insufficient; consider initializing its conductance near zero or using it as a slow Na+ persistent current (INaP) with a Boltzmann steady-state to account for subthreshold voltage variance.",
+      "severity": "major",
+      "location": "Same EDITABLE SECTIONs as above, specifically the tau_V_inv and V_inf terms for the X2 slot",
+      "suggestion": "If spike count and voltage statistics still deviate after adding the M-current, add a persistent Na+ current (INaP) using X2:\n\n```python\n# Persistent Na+ (INaP) - no gating variable needed, use steady-state Boltzmann\nE_NaP = param_j  # already negated, tunable near E_Na\ndef m_NaP_inf(x):\n    return 1.0 / (1.0 + Exp(-(x + 52.0) / 5.0))\n```\nThen in tau_V_inv: `+ gbar_X2 * m_NaP_inf(V[:, i-1])`\nIn V_inf: `+ gbar_X2 * m_NaP_inf(V[:, i-1]) * E_NaP`\n\nThis adds a depolarizing bias that modulates mean voltage during stimulation and resting variance without requiring burst-generating dynamics."
+    }
+  ]
+}

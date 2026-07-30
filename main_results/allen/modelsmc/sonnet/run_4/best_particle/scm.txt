@@ -1,0 +1,5 @@
+- **V**: membrane potential; driven by Na⁺, K⁺ (Kdr), leak, M-current (X1), and injected current
+- **m, h**: Na⁺ activation/inactivation gates → fast spike upstroke/repolarisation
+- **n**: delayed-rectifier K⁺ activation gate → spike repolarisation
+- **p**: M-current (Kv7/KCNQ) slow K⁺ activation gate → tonic regularity, mean-V/skewness correction
+- **Assumptions**: E_K = −77 mV (physiological mammalian value); M-current non-inactivating; params[6]=gbar_M, params[7]=|V_half_M|; tau_M fixed at 75 ms; X2 slot unused

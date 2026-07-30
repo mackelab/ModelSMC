@@ -1,0 +1,5 @@
+- V (membrane voltage) <- m,h,n (fast HH gates), q (slow X1 activation), gbar_* (gbar_Na,gbar_K,g_leak,gbar_X1), I_inj, stochastic noise.
+- m,h,n <- V via voltage-dependent alpha/beta kinetics (fast, determine AP shape); q <- V via slow sigmoidal activation (tau_q from param_j, V_half from param_i).
+- I_ion contributions: I_Na ~ gbar_Na*m^3*h*(V-E_Na), I_K ~ gbar_K*n^4*(V-E_K), I_leak ~ g_leak*(V-E_leak), I_X1 ~ gbar_X1*q*(V-E_K).
+- Assumptions: only one extra channel (X1) added (M-type, non-inactivating slow K) using both flexible params; dt is in ms; params[3]/[4] are provided as absolute magnitudes with sign applied internally.
+- Parsimony: X1 chosen to tune spike frequency and subthreshold excitability without producing bursting or sustained high‑frequency firing.

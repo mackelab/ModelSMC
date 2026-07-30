@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from the params tensor but NEVER used in the simulation. All editable TODO sections remain empty, meaning the model runs as a plain 3-channel HH model with no additional mechanisms. This is the primary driver of the high NLE (~25.7), because the optimizer cannot compensate for systematic missing physics through the base-channel parameters alone.",
+  "issues": [
+    {
+      "description": "gbar_X1, param_i, and param_j are defined but all TODO blocks left empty: no kinetics functions, no state variable, no initialization, no update in the loop, and no contribution to tau_V_inv / V_inf. The simulator therefore ignores all inferred parameters for the extra channel, preventing any improvement beyond the 3-channel baseline.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks in the forward() method",
+      "suggestion": "Implement an M-current (slow, non-inactivating K+ current) using gbar_X1 as conductance and param_i as the half-activation voltage. This channel is well-suited to regular tonic spiking without bursting. Concretely: (1) Add kinetics: `def w_inf(x): return 1.0 / (1.0 + Exp(-0.1 * (x - param_i)))` and a fixed slow time constant `tau_w = 100.0` (ms). (2) Declare state variable `w = torch.zeros(...)` and initialize `w[:, 0] = w_inf(V[:, 0])`. (3) In the loop, update: `w[:, i] = w_inf(V[:, i-1]) + (w[:, i-1] - w_inf(V[:, i-1])) * Exp(-tstep / tau_w)`. (4) Add `+ gbar_X1 * w[:, i-1]` to tau_V_inv and `+ gbar_X1 * w[:, i-1] * E_K` to V_inf. The M-current will modulate inter-spike intervals to produce evenly-spaced tonic firing matching the data statistics (spike count, mean voltage, variance, skewness, kurtosis)."
+    },
+    {
+      "description": "param_j is negated and has a range up to -3000 mV, which is physically unusable as a direct voltage or reversal potential. If intended as a time-constant-like parameter for the slow gating variable, the negation and the very large range make it numerically unstable and likely to diverge the simulation.",
+      "severity": "major",
+      "location": "param_j = -params[:, 9].float() extraction line",
+      "suggestion": "Either (a) use a fixed time constant for the M-current slow gate (e.g., tau_w = 100 ms) and leave param_j unused for now, keeping the model parsimonious; or (b) if param_j encodes a time-scale, use it as `tau_w = torch.clamp(torch.abs(param_j), 10.0, 500.0)` to keep it physically meaningful and numerically stable. Given the system description's emphasis on parsimony, option (a) is recommended unless spike-frequency adaptation needs to be tunable."
+    }
+  ]
+}

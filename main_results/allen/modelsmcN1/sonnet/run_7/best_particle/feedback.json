@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The V_half_mAHP = -22.0mV probe succeeded: NLE=24.6 < 24.8 (prior best), confirming a hyperpolarising shift of the mAHP half-activation voltage is beneficial. Per the branching rule, V_half_mAHP should be permanently closed at -22.0mV. The next exploration should probe further in the same hyperpolarising direction (e.g., -24.0mV) to determine whether the improvement continues or plateaus.",
+  "issues": [
+    {
+      "description": "V_half_mAHP = -22.0mV probe confirmed beneficial (NLE=24.6 < 24.8). The branching rule specifies: 'NLE < 24.8 \u2192 helpful; close V_half_mAHP at -22.0mV.' This axis must now be permanently closed at -22.0mV and the next probe should continue in the hyperpolarising direction.",
+      "severity": "major",
+      "location": "V_half_mAHP constant definition and r_inf_mAHP function",
+      "suggestion": "Change the comment from 'PROBE' to 'PERMANENTLY CLOSED at -22.0mV' and set up the next probe: V_half_mAHP = -24.0mV. The 2mV further hyperpolarising shift has not been evaluated and follows naturally from the confirmed benefit. Resting activation at -70mV remains negligible (r_inf(-24) \u2248 5.2e-5), so resting statistics are unaffected. Document the new branching: NLE < 24.6 \u2192 helpful (close at -24.0mV); NLE \u2248 24.6 \u2192 plateau (revert to -22.0mV); NLE > 24.6 \u2192 harmful (close permanently at -22.0mV)."
+    },
+    {
+      "description": "With V_half_mAHP now closed at -22.0mV, the configuration space still has room for improvement. After probing V_half_mAHP further, consider re-examining k_mAHP (currently 6.0mV, closed). A slightly narrower slope (k_mAHP=5.0mV) would steepen the Boltzmann curve, producing sharper AHP activation and potentially tighter inter-spike interval regularity, which could improve variance/kurtosis statistics.",
+      "severity": "suggestion",
+      "location": "k_mAHP constant definition",
+      "suggestion": "After resolving the V_half_mAHP=-24.0mV probe, set up a secondary probe of k_mAHP=5.0mV (from 6.0mV). This steepens the r_inf Boltzmann, concentrating AHP activation over a narrower voltage range near V_half. The interaction with the newly confirmed V_half_mAHP=-22.0mV may produce synergistic improvements in voltage distribution shape statistics (skewness, kurtosis) that were not achievable when k_mAHP was originally evaluated at the old V_half=-20.0mV."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The critical failure is that gbar_X1, gbar_X2, param_i, and param_j are extracted from the parameter tensor but are completely unused \u2014 no kinetics, no state variables, no current contributions exist for either additional channel. The simulator is functionally identical to a base three-channel HH model regardless of the inferred values of these four parameters, making the inference problem ill-posed and causing poor marginal likelihood.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted but never used anywhere in the simulation. No kinetics functions, no gating state variables, no contributions to tau_V_inv or V_inf are implemented for the allocated channel slots. This means the inference engine cannot improve fit by adjusting these parameters, directly causing the high neg_avg_log_marginal_NLE of 25.2.",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs \u2014 kinetics definition block, state variable allocation, initialization, per-step update, tau_V_inv sum, and V_inf sum",
+      "suggestion": "Implement a slow M-type K+ current using gbar_X1 and param_j (as slow time constant). Add: (1) kinetics \u2014 `def p_inf(x): return 1.0/(1.0+Exp(-(x - param_i)/10.0))` and fixed tau_p using param_j; (2) state variable `p = torch.zeros(...)` initialized to `p_inf(V[:,0])`; (3) per-step update `p[:,i] = p_inf(V[:,i-1]) + (p[:,i-1]-p_inf(V[:,i-1]))*Exp(-tstep/param_j)`; (4) add `+ gbar_X1 * p[:,i-1]` to tau_V_inv; (5) add `+ gbar_X1 * p[:,i-1] * E_K` to V_inf numerator. This slow outward current regularizes tonic spiking spacing without inducing bursting."
+    },
+    {
+      "description": "With all four additional parameters (gbar_X1, gbar_X2, param_i, param_j) being dead code, the effective parameter space is lower-dimensional than declared, causing the posterior to be diffuse and multimodal over the unused dimensions. This inflates the estimated marginal likelihood variance, explaining the gap between neg_avg_log_marginal_NLE (25.2) and the scaled total (252 over 10 observations).",
+      "severity": "major",
+      "location": "Parameter extraction block (lines defining gbar_X1, gbar_X2, param_i, param_j) and the simulation loop",
+      "suggestion": "After implementing the M-current with gbar_X1 and param_j, evaluate whether a second channel (X2) is needed. If the spike count and resting statistics remain mismatched, consider adding a persistent Na+ current: `I_NaP = gbar_X2 * m_p_inf(V) * (V - E_Na)` with `m_p_inf(x) = 1/(1+Exp(-(x-Vt-7)/5))` as a steady-state (no extra state variable needed), adding `+ gbar_X2 * m_p_inf(V[:,i-1])` to tau_V_inv and `+ gbar_X2 * m_p_inf(V[:,i-1]) * E_Na` to the V_inf numerator. Only add X2 if X1 alone is insufficient."
+    }
+  ]
+}

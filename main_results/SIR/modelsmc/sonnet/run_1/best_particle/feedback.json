@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The very poor neg_avg_log_marginal_NLE of -428 indicates the simulator's stochastic trajectories are very unlikely under the observed data. The primary issues are: (1) the parameter clipping bounds in `set_parameters` are too restrictive and asymmetric \u2014 particularly the gamma upper bound of 0.3 (implying minimum ~3.3-day recovery) may not cover the true posterior, causing SBI to be unable to find the correct parameters; and (2) for large COVID-scale populations the purely Binomial noise model produces variance proportional to N*p*(1-p), which may be either grossly over-dispersed or under-dispersed relative to the true data, leading to a severely mis-calibrated likelihood.",
+  "issues": [
+    {
+      "description": "The hard clipping of parameters in `set_parameters` (beta in [0.05, 1.5], gamma in [0.01, 0.3]) is too restrictive and prevents SBI from exploring regions where the true posterior may lie. The gamma upper bound of 0.3 is especially problematic: a faster-recovering population (gamma > 0.3, i.e., < 3.3-day mean infectious period) is plausible for some COVID data windows. If SBI proposes parameters outside these bounds, gradients vanish and inference stalls at the boundary.",
+      "severity": "critical",
+      "location": "set_parameters method, lines: beta = float(np.clip(parameters[0], 0.05, 1.5)) and gamma = float(np.clip(parameters[1], 0.01, 0.3))",
+      "suggestion": "Widen the parameter bounds significantly to allow SBI full exploration: e.g., beta in [0.01, 2.0] and gamma in [0.005, 0.5]. Removing the hard clip entirely (or using very soft boundaries via a sigmoid/softplus reparameterisation) is even better, since it keeps gradients alive throughout the posterior search. Apply the same widened bounds consistently inside `forward`."
+    },
+    {
+      "description": "For large COVID-scale populations (N in the hundreds of thousands or millions), the Binomial draws in the S\u2192I and I\u2192R transitions produce variance ~N*p*(1-p), which is enormous in absolute counts. This means simulated trajectories fan out far more than real-world smoothed COVID case counts (which reflect aggregated/reported data with different noise characteristics), making the marginal likelihood extremely low. The mismatch between the Binomial noise level and the actual observation noise is the dominant source of poor NLE.",
+      "severity": "major",
+      "location": "forward method \u2014 new_infected = int(rng.binomial(n=S, p=prob_infection)) and new_recovered = int(rng.binomial(n=I, p=prob_recovery))",
+      "suggestion": "For large N, replace the pure Binomial draws with a Gaussian approximation that includes an additional over-dispersion (or under-dispersion) scaling factor, i.e., new_infected = round(Normal(mu=S*p, sigma=sqrt(S*p*(1-p)) * noise_scale)), where noise_scale is a fixed or learnable multiplier (e.g., noise_scale \u2248 0.1\u20130.3 for smooth reported-case data). Alternatively, use the deterministic ODE update (mu only) and add a separate small additive Gaussian observation noise term, which is a common and well-calibrated choice for SBI on epidemiological count data."
+    }
+  ]
+}

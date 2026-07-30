@@ -1,0 +1,5 @@
+- **V** (membrane potential) ← Na⁺ current (m³h), K⁺ current (n⁴), leak, M-current (p), injected current, process noise
+- **m, h** (Na⁺ gates) ← voltage-dependent α/β kinetics shifted by Vt
+- **n** (K⁺ gate) ← voltage-dependent α/β kinetics shifted by Vt
+- **p** (M-current gate, X1 slot) ← slow sigmoid steady-state at half-activation (Vt + param_i), voltage-independent time constant param_j
+- **Assumptions**: tonic regular spiking only; M-current (Kv7) provides spike-frequency stabilization via slow subthreshold K⁺ conductance; param_i/param_j read as positive values per signature; noise model unchanged from base

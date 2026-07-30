@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current (slow K⁺), and injected current
+- **m, h** (Na⁺ gates): fast activation/inactivation → spike generation
+- **n** (delayed-rectifier K⁺ gate): spike repolarisation
+- **p** (M-current gate): slow muscarinic K⁺ → spike-frequency adaptation; half-activation at `param_i`
+- Core assumptions: exponential-Euler integration; `Exp` clamped on both ends to prevent float32 overflow; `tau_p` floored at 0.1 ms for numerical stability

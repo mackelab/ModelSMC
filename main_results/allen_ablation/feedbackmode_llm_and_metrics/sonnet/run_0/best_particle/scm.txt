@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by fast Na⁺, delayed-rectifier K⁺, leak, M-current (IKM), and injected current
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation; E_Na = 53 mV
+- **n** (K⁺ gate): delayed-rectifier activation; E_K = -77 mV (physiologically standard)
+- **p** (M-current gate): slow Boltzmann activation; half-voltage `V_half_M = -param_i` (params[:,8]); time constant `tau_p = param_j` (params[:,9], range [1e-4, 3000] ms)
+- **Assumptions**: tonic spiking only; M-current modulates ISI regularity and spike-frequency adaptation; E_K corrected from erroneous -107 mV base value; Boltzmann steady-state with fixed-shape slope is simpler and more identifiable than symmetric-exponential rate-constant formulation

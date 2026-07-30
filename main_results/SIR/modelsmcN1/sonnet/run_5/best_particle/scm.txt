@@ -1,0 +1,5 @@
+- **Variables**: S (Susceptible), I (Infected), R (Recovered); N = S+I+R conserved; simultaneous update; integer compartments
+- **Parameters**: β = parameters[0], γ = parameters[1]; init [0.25, 0.07] → R0≈3.6; β∈[1e-4,1.0], γ∈[1e-4,1.0]
+- **Causal flow**: Infections ~ NB(k_inf=15, mu=S·p_inf) moderate overdispersion (Var=mu+mu²/15); Recoveries ~ Binomial(n=I, p=p_rec) simultaneous from I_t; per feedback: Binomial confirmed good (NLE=-363), NB k=15 adds calibrated COVID superspreading
+- **Key changes this iteration**: (1) Replace Binomial infection with NB(k=15): mild overdispersion; Var=mu+mu²/15 vs Binomial Var=mu(1-p); (2) Tighten beta∈[1e-4,1.0] (R0≤10; eliminates implausible R0>10 parameter waste); (3) Update init to [0.25,0.07] matching early COVID R0≈3.6
+- **Assumptions**: Closed population; frequency-dependent FOI; NB(k=15) infection (mild COVID superspreading); simultaneous Binomial recovery; N conserved; β∈[1e-4,1.0], γ∈[1e-4,1.0]

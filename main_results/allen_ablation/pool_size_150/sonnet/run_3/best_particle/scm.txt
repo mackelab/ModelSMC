@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gating): fast activation/inactivation → action potential upstroke/repolarization
+- **n** (K⁺ delayed rectifier): spike repolarization and refractory period
+- **w** (M-current, IKM): slow non-inactivating K⁺ → spike-frequency adaptation regularizing tonic firing
+- **Key design**: M-current uses X1 conductance (params[:,6]), X2 slot as half-activation voltage (params[:,7]), and param_j as slow time constant (params[:,9]); param_i left free

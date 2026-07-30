@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in SimulatorStep is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns the unchanged state. This means the simulator produces no dynamics whatsoever, resulting in astronomically poor log-likelihood scores (neg_avg_log_NLE ~2.88e+24). The SIR transition logic using the two learnable parameters (beta, gamma) must be fully coded.",
+  "issues": [
+    {
+      "description": "The `forward` method contains no SIR dynamics. It simply copies and returns the input state unchanged, so every simulated trajectory is a flat line. The two parameters are never used, making SBI parameter optimization meaningless and producing catastrophic log-likelihood values.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines after `next_state = state.copy()`",
+      "suggestion": "Implement the discrete-time stochastic SIR model inside `forward`. Extract S, I, R from state and compute N = S + I + R. Treat parameters[0] as beta (transmission rate) and parameters[1] as gamma (recovery rate). Compute per-day transition counts using binomial draws for realism: new_infections = rng.binomial(S, 1 - np.exp(-beta * I / N)) and new_recoveries = rng.binomial(I, 1 - np.exp(-gamma)). Then set next_state = {'S': S - new_infections, 'I': I + new_infections - new_recoveries, 'R': R + new_recoveries} and return it. Using the exponential-form probabilities (1 - exp(-rate)) avoids probabilities exceeding 1 and gives a numerically stable, realistic discrete-time SIR simulator suitable for SBI."
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. This also means the simulator cannot be safely instantiated and run without an explicit prior call to `set_parameters`.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__",
+      "suggestion": "Add a default parameter initialisation in `__init__`, e.g. `self.parameters = np.array([0.3, 0.1])`, corresponding to plausible default values for beta and gamma. This ensures the simulator is always in a valid runnable state and prevents silent failures during SBI sampling."
+    }
+  ]
+}

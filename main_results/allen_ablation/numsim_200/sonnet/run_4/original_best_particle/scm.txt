@@ -1,0 +1,5 @@
+- **V**: membrane potential driven by Na⁺, K⁺ (Kdr), A-type K⁺, leak, injected current, and noise
+- **m, h**: Na⁺ fast activation/inactivation gates → action potential upstroke and repolarization
+- **n**: K⁺ delayed-rectifier activation gate → spike repolarization
+- **b**: A-type K⁺ slow inactivation gate; activation treated as instantaneous (Boltzmann) → controls inter-spike interval regularity without bursting
+- **Key assumptions**: single-compartment HH; X1 slot: gbar_A=params[:,6], tau_b=params[:,7]; A-current half-voltages fixed relative to Vt; X2 slot unused

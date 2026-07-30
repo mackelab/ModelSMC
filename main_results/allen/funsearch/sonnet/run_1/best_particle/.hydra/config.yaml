@@ -1,0 +1,78 @@
+name: allen_funsearch_sonnet
+seed: 4
+delete_dspy_cache: true
+logging:
+  level: INFO
+method:
+  max_iter: 15
+  few_shot_examples: 3
+  verbose: false
+  max_num_itr_no_improvement: 8
+  use_chain_of_thought: false
+  req_num_cpus_per_ray_thread: 1
+  req_num_gpus_per_ray_thread: 1
+  evaluator:
+    likelihood_estimator: NLE_PFN
+    n_samples_evidence_estimation: 2000
+    prior_sampling_fallback_factor: 10
+    evidence_estimation_mode: posterior_samples
+    sampling_timeout: 60
+    bs_marginals: null
+    plotting: true
+    inter_quantile_range:
+    - 0.99
+    - 0.9
+    - 0.75
+    - 0.5
+    - 0.25
+    - 0.1
+    - 0.01
+  optimizer:
+    plotting: true
+    num_simulations: 5000
+    save_parameter_estimates: true
+    name: npe_pfn
+    sampling_timeout: 60
+    num_samples_posterior: 5000
+    evaluation_mode: power_scaling
+    temperature: 1.0e-05
+  name: funsearch_plus
+  global_max_sample_num: 180
+  num_samplers: 1
+  num_evaluators: 1
+  samples_per_prompt: 4
+  evaluate_timeout_seconds: 1000
+  program_database:
+    functions_per_prompt: 3
+    num_islands: 10
+    reset_period: 14400
+    cluster_sampling_temperature_init: 0.1
+    cluster_sampling_temperature_period: 30000
+task:
+  num_obs_train: 0
+  num_obs_valid: 10
+  metric_to_optimize: neg_log_likelihood_NLE
+  optimization_direction: min
+  termination_val: null
+  plotting: true
+  learnable_summary_statistics: false
+  dir_data: llm_discovery/tasks/allen/data/
+  n_xcorr: 0
+  n_mom: 4
+  n_summary: 7
+  name: allen_level0
+  compute_parameter_estimate: true
+llm:
+  api_key_name: ANTHROPIC_API_KEY
+  max_tokens: 20000
+  temperature: 1.0
+  cache: false
+  thinking:
+    type: enabled
+    budget_tokens: 8000
+  name: claude_sonnet46
+  model: anthropic/claude-sonnet-4-6
+sweeper:
+  name: null
+  objective: null
+run_id: 733fff14-3734-4b35-b4ef-03995681eef6

@@ -1,0 +1,5 @@
+- Variables: S (Susceptible), I (Infected), R (Recovered); N = S+I+R conserved exactly by binomial construction
+- Parameters: β = 0.05 + 0.45·sigmoid(θ₀) → (0.05, 0.50) COVID-realistic R0 range 0.33–10; γ = 0.05 + 0.10·sigmoid(θ₁) → (0.05, 0.15) recovery period 7–20 days
+- S→I: p_inf = 1 − exp(−β·I/N) exact Reed-Frost discrete-time SIR; new_infections = Binomial(int(S), p_inf); NO clip, NO noise
+- I→R: p_rec = γ deterministic; new_recoveries = Binomial(int(I), γ); NO eps_rec
+- Assumptions: ITER-103 — exponential p_inf (Iter-84 validated NLE -56.7) + COVID-realistic parameter ranges per feedback; prior wide ranges (0.02–0.77) give R0 up to 38.5 which is physically incorrect for COVID and caused NLE -565; 2-draw pure binomial; NO Normal draw; N==0 guard before all draws

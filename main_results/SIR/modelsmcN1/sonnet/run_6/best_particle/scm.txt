@@ -1,0 +1,5 @@
+- **S, I, R**: Susceptible, Infected, Recovered compartments (integers, N = S+I+R conserved exactly by simultaneous Reed-Frost update)
+- **beta** (parameters[0]): daily transmission rate ∈ [0.01, 0.50]; Reed-Frost p_inf = 1−(1−β/N)^I; defaults [0.20, 0.15]; R0≈1.33
+- **gamma** (parameters[1]): daily recovery probability ∈ [0.03, 0.30]; mean sojourn 3.3–33 days; defaults [0.20, 0.15] empirically optimal
+- **Direct Binomial infection draw**: REMOVE Beta-Binomial entirely per iter-29 feedback; `new_infections = rng.binomial(n=S, p=float(p_inf_safe))`; this matches iter-13 "kappa implicit" ALL-TIME BEST -5.92
+- **Plain Binomial recovery**: `int(rng.binomial(n=I, p=float(gamma)))` — float(gamma) retained; simultaneous Reed-Frost update preserves N exactly

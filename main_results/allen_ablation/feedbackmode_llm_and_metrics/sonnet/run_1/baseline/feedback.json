@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel parameter slots (gbar_X1, gbar_X2, param_i, param_j) are extracted from `params` but are completely unused in the simulation \u2014 no kinetics functions, no state variables, no current contributions to tau_V_inv or V_inf. The model is therefore equivalent to plain HH regardless of what values are inferred for these parameters, which explains the high neg_avg_log_marginal_NLE (~25.9). At least one additional slow potassium channel (e.g., M-current) must be fully wired into all editable sections.",
+  "issues": [
+    {
+      "description": "gbar_X1 and the associated parameters (param_i, param_j) are extracted but never contribute to any current, state variable, or voltage update. The simulation is purely standard HH (Na, K, leak), so the additional inferred parameters have zero effect on the output, preventing the model from fitting the experimental tonic spiking statistics.",
+      "severity": "critical",
+      "location": "All '# BEGIN EDITABLE SECTION' blocks \u2014 kinetics, state variable declaration, initialization, loop update, tau_V_inv, V_inf",
+      "suggestion": "Implement a slow, non-inactivating M-type potassium current using gbar_X1 as conductance (renamed gbar_M). Add a single activation gate `p` with: (1) kinetics block \u2014 `def p_inf(x): return 1.0/(1+Exp(-(x - Vt + 35.0)/10.0))` and `def tau_p(x): return 200.0/(3.3*Exp((x-Vt+35.0)/20.0)+Exp(-(x-Vt+35.0)/20.0))`; (2) state variable `p = torch.zeros(...)` initialized as `p[:,0] = p_inf(V[:,0])`; (3) loop update `p[:,i] = p_inf(V_prev) + (p[:,i-1] - p_inf(V_prev))*Exp(-tstep/tau_p(V_prev))`; (4) add `+ gbar_M * p[:,i-1]` to tau_V_inv and `+ gbar_M * p[:,i-1] * E_K` to the numerator of V_inf. Use param_i as an optional voltage-shift for p_inf (e.g., replace 35.0 with `35.0 + param_i`) to give the inference extra flexibility."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (`param_i = -params[:,8]`) but the raw params are constrained positive [1e-4, 150/3000], making these values always negative. If used as voltage offsets or time constants they will systematically bias the kinetics in only one direction, limiting the expressiveness of the additional channel.",
+      "severity": "major",
+      "location": "Parameter extraction block: `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Remove the negation so `param_i = params[:,8].float()` and `param_j = params[:,9].float()`, then subtract them where needed inside the kinetics (e.g., `p_inf` half-activation = `-(35.0 + param_i)` relative to Vt) to allow the optimizer to explore both directions of the parameter space correctly."
+    }
+  ]
+}

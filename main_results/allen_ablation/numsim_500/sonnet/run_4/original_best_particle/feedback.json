@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel slots (X1, X2) are allocated and their parameters extracted (gbar_X1, gbar_X2, param_i, param_j) but all editable sections are completely empty \u2014 these parameters have zero effect on the simulation. The model runs as a plain 3-channel HH neuron, unable to capture the experimental tonic spiking statistics, which explains the high neg_avg_log_marginal_NLE of 25.3. At minimum, a slow non-inactivating K+ current (M-current, IKM) should be implemented using slot X1 to regulate spike spacing and produce regular tonic firing.",
+  "issues": [
+    {
+      "description": "All editable sections are empty: gbar_X1, gbar_X2, param_i, param_j are extracted but never used in kinetics, state variables, or current equations. The model is identical to a plain HH model with no extensibility active.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks inside forward()",
+      "suggestion": "Implement an M-type slow K+ current using gbar_X1 and param_i (half-activation voltage), param_j (time constant). Add: (1) kinetics: `def p_inf_m(x): return 1.0/(1.0+Exp(-(x-param_i)/10.0))` and `def tau_p_m(x): return torch.clamp(-param_j/500.0, min=5.0, max=200.0)`; (2) state variable `p_m = torch.zeros(...)` initialized to `p_inf_m(V[:,0])`; (3) update in loop: `p_m[:,i] = p_inf_m(V[:,i-1]) + (p_m[:,i-1]-p_inf_m(V[:,i-1]))*Exp(-tstep/tau_p_m(V[:,i-1]))`; (4) add `+ gbar_X1*p_m[:,i-1]` to tau_V_inv and `+ gbar_X1*p_m[:,i-1]*E_K` to the numerator of V_inf. This M-current activates slowly near threshold and enforces regular tonic spacing without burst behavior."
+    },
+    {
+      "description": "The negation of param_i and param_j (e.g., `param_i = -params[:,8]`) means these values are negative (param_i in [-150, ~0], param_j in [-3000, ~0]). If they are intended as half-activation voltage and time-constant scale, their sign and scaling must be handled carefully, otherwise inferred values will be physically invalid (e.g., negative time constants).",
+      "severity": "major",
+      "location": "params[:, 8] and params[:, 9] extraction lines; tau_p usage in loop",
+      "suggestion": "Ensure correct sign conventions: param_i as a negative half-activation voltage (~-40 to -30 mV) is plausible. For param_j used as a time constant, apply `torch.clamp(-param_j / scale, min=5.0, max=300.0)` so the inferred positive params[:,9] map to valid positive time constants in milliseconds. Document the intended physiological range clearly in the code."
+    }
+  ]
+}

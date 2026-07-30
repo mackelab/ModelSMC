@@ -1,0 +1,5 @@
+- V(t) = integrated membrane voltage caused by INa(m,h), IK(n), I_leak and one added IM-like current (gbar_X1 * p); input_current and process noise drive V.
+- m,h,n follow HH first-order voltage-dependent kinetics (alpha/beta → tau, inf); p is a slow non-inactivating activation with p_inf(V;V_half) and tau_p(param_j).
+- Tunable parameters: gbar_Na, gbar_K, g_leak, E_leak (signed internally), Vt (signed internally), nois_fact, gbar_X1 (IM), param_i→V_half, param_j→tau_p. gbar_X2 unused.
+- Assumptions: C, E_Na, E_K fixed; IM is K+-like (reversal E_K), non-inactivating, slow — modifies spike frequency/subthreshold statistics without producing bursting.
+- Stochasticity: additive process noise preserved as in original code (scaled by 1/sqrt(dt)); observation noise set to 0.

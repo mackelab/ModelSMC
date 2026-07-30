@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The critical failure is that all four additional parameters (gbar_X1, gbar_X2, param_i, param_j) are extracted from the parameter tensor but are never used anywhere in the simulation \u2014 all EDITABLE SECTIONs remain empty. The model therefore runs as a plain 3-variable HH model regardless of what values are inferred, making the NLE extremely high (25.9 per step). A slow M-type potassium current (IKm) should be implemented using the X1 slot to regularize tonic firing and correct resting-potential statistics.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted but never wired into the ODE \u2014 the EDITABLE SECTIONs are completely empty. The simulator is therefore equivalent to a standard 3-variable HH model no matter what parameter values are chosen, which explains the high NLE.",
+      "severity": "critical",
+      "location": "All EDITABLE SECTION blocks inside forward()",
+      "suggestion": "Implement a slow M-type K+ current (IKm) using channel slot X1 and param_i as a tunable half-activation shift. Add the following in each editable block:\n\n1) KINETICS:\n```python\ndef alpha_p(x):\n    v1 = x - Vt - param_i  # param_i tunes half-activation (already negated)\n    return 3.3e-3 * Exp(0.05 * v1)\ndef beta_p(x):\n    v1 = x - Vt - param_i\n    return 3.3e-3 * Exp(-0.05 * v1)\n```\n2) STATE VARIABLE: `p = torch.zeros((batch_size, time_steps), device=device)`\n3) INITIALIZATION: `p[:, 0] = inf_x(alpha_p(V[:, 0]), beta_p(V[:, 0]))`\n4) LOOP KINETICS: `a_p, b_p = alpha_p(V[:, i-1]), beta_p(V[:, i-1])`\n5) tau_V_inv ADD: `+ gbar_X1 * p[:, i-1]`\n6) V_inf ADD: `+ gbar_X1 * p[:, i-1] * E_K`\n7) STATE UPDATE: `p[:, i] = inf_x(a_p, b_p) + (p[:, i-1] - inf_x(a_p, b_p)) * Exp(-tstep / tau_x(a_p, b_p))`\nLeave X2 unused to maintain parsimony."
+    },
+    {
+      "description": "The noise generator is re-initialized unconditionally even when seed=None, meaning every call without a seed produces a fresh generator with non-deterministic state. More importantly, the observation noise factor nois_fact_obs is hardcoded to 0.0, so the model can never learn to match the empirical resting-potential standard deviation (one of the evaluated summary statistics).",
+      "severity": "minor",
+      "location": "nois_fact_obs = 0.0 and generator initialization block",
+      "suggestion": "Consider allowing nois_fact_obs to be non-zero (e.g., a small fixed value like 0.1 mV) so the model can reproduce the measured resting-potential standard deviation. Alternatively, expose it as an additional inferred parameter if the resting std metric remains poorly matched after adding IKm."
+    }
+  ]
+}

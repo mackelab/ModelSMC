@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The extracted parameters gbar_X1, gbar_X2, param_i, and param_j are never used in the actual simulation dynamics. They are assigned but contribute nothing to tau_V_inv or V_inf, making them dead code. This means the model is effectively standard HH with 4 non-functional parameters, leading to poor inference and high NLE scores. At least one additional channel (e.g., slow M-type K+ current) must be implemented using these slots.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never referenced in tau_V_inv, V_inf, or any state variable update. The simulation ignores these parameters entirely, so the inferred values carry no information and the model cannot match experimental tonic spiking statistics.",
+      "severity": "critical",
+      "location": "tau_V_inv and V_inf computations inside the simulation loop; the four EDITABLE SECTIONs",
+      "suggestion": "Implement an M-type slow K+ non-inactivating current using gbar_X1. Define a gating variable w with: w_inf(V) = 1 / (1 + exp(-(V - param_i) / 10.0)) and tau_w = abs(param_j) (or a constant ~100 ms). Initialize w[:, 0] = w_inf(V[:, 0]). In the loop compute w_inf and update w[:, i] with the exponential Euler step. Add gbar_X1 * w to tau_V_inv and gbar_X1 * w * E_K to the numerator of V_inf. This regularises interspike intervals for tonic spiking without bursting."
+    },
+    {
+      "description": "The nois_fact_obs is hardcoded to 0.0, so observation noise is never applied. The resting potential standard deviation metric (metric 3) relies on some voltage fluctuation even at rest; without any observation noise and without stochastic channel noise at rest (input_current is 0 pre-stimulus), the simulator will produce a perfectly flat pre-stimulus trace, inflating the discrepancy on the std(V_rest) summary statistic.",
+      "severity": "major",
+      "location": "nois_fact_obs = 0.0 at the top of forward()",
+      "suggestion": "Either expose nois_fact_obs as a parameter or tie it to nois_fact (e.g., nois_fact_obs = nois_fact * small_scale). Alternatively, ensure the stochastic noise term driven by nois_fact already produces realistic resting fluctuations by verifying it is active even when input_current is zero. This will allow the model to reproduce the observed std of the resting potential."
+    }
+  ]
+}

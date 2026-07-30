@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel conductances (gbar_X1, gbar_X2) and their associated parameters (param_i, param_j) are extracted from the params tensor but are never incorporated into the membrane voltage dynamics (tau_V_inv and V_inf). The model therefore runs as a plain 3-channel HH regardless of those parameter values, making the optimizer unable to find the missing channel(s) needed to reproduce the tonic spiking statistics. This is the dominant cause of the high neg_log_marginal_NLE (~263).",
+  "issues": [
+    {
+      "description": "gbar_X1 (and its associated param_i / param_j) is extracted but contributes zero current to the simulation. The tau_V_inv and V_inf sums, as well as the state-variable arrays, have no X1 terms, so the channel has no effect whatsoever on the output voltage trace.",
+      "severity": "critical",
+      "location": "tau_V_inv and V_inf accumulation blocks, plus the state-variable declaration / initialization / update loops (all marked TODO).",
+      "suggestion": "Implement an M-type slow potassium current (I_M) for X1, which is consistent with regular tonic spiking without bursting. Add a single gating variable `p` with: alpha_p(V) = 0.001 * efun(-0.1*(V - param_i - 30)) / 0.1  and  beta_p(V) = 0.001 * Exp(-(V - param_i - 30) / 9). Use param_i as the half-activation offset (inferred, ~-35 mV range) and param_j as optional time-constant scaling. Then: (1) declare `p = torch.zeros(...)` and initialize `p[:,0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`, (2) add `+ gbar_X1 * p[:,i-1]` to tau_V_inv (divided by C), (3) add `+ gbar_X1 * p[:,i-1] * E_K` to the numerator of V_inf, and (4) update p[:,i] with the Exp-Euler step analogous to n, m, h."
+    },
+    {
+      "description": "Even after adding the X1 channel kinetics, the model may still under-fit resting potential and voltage variance if the leak reversal E_leak is not well-constrained, because param_i and param_j are negated before use (E_leak = -params[:,3] and Vt = -params[:,4]), which may conflict with the intended positive-range priors for those slots and produce unphysical reversal potentials.",
+      "severity": "major",
+      "location": "Parameter extraction block: `E_leak = -params[:, 3]`, `Vt = -params[:, 4]`, `param_i = -params[:, 8]`, `param_j = -params[:, 9]`.",
+      "suggestion": "Verify sign conventions are consistent: E_leak and Vt are intentionally negated because the prior enforces positive values and the physiology requires negative mV. Apply the same reasoning to param_i if it represents a half-activation voltage (e.g., ~-35 mV), keeping `param_i = -params[:,8]` so the inferred positive value maps to a physiologically negative voltage. Document the sign flip explicitly and double-check that the M-current half-activation expression uses param_i (already negated) without an additional minus sign, to avoid double-negation errors that would place the activation curve at a positive voltage and produce runaway depolarization."
+    }
+  ]
+}

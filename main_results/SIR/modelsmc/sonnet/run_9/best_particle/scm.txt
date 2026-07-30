@@ -1,0 +1,5 @@
+- Variables: S (Susceptible), I (Infected), R (Recovered); N = S+I+R strictly conserved integer
+- S → I: Binomial(S, 1−exp(−β·I/N)) exact discrete-time draw; I → R: Binomial(I, 1−exp(−γ)) exact draw
+- parameters[0] = β ∈ [0.1, 0.5] (transmission rate); parameters[1] = γ ∈ [0.05, 0.2] (recovery rate)
+- Binomial is the canonical stochastic SIR noise model — inherently bounds-respecting, correctly calibrated variance
+- Population N conserved exactly each step; edge cases (I=0, N=0) short-circuited

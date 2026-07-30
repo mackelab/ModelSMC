@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator's hard parameter clipping in `forward` (beta clamped to [0.05, 1.0], gamma to [0.03, 0.2]) creates flat-gradient regions that prevent SBI from exploring the correct parameter space, resulting in catastrophically negative NLE scores (-471 avg). Additionally, the discrete-time binomial update draws new_recoveries from the pre-infection I pool while simultaneously updating with new_infections, which can cause slight systematic underestimation of recovery flux and accumulate bias across 60 steps.",
+  "issues": [
+    {
+      "description": "Parameter clipping bounds are too narrow for COVID-19 SBI. Hard np.clip on beta to [0.05, 1.0] and gamma to [0.03, 0.2] means if the true posterior lies outside these ranges (e.g., high-transmission variants with beta > 1.0, or very long infectious periods with gamma < 0.03), the SBI inference will map all such parameter proposals to the boundary, producing flat likelihood surfaces and poor NLE. The neg_avg_log_marginal_NLE of -471 strongly suggests the inferred parameters cannot reach the true data-generating values.",
+      "severity": "critical",
+      "location": "forward() \u2014 lines: `beta = float(np.clip(parameters[0], 0.05, 1.0))` and `gamma = float(np.clip(parameters[1], 0.03, 0.2))`",
+      "suggestion": "Widen the parameter ranges substantially: `beta = float(np.clip(parameters[0], 0.01, 2.0))` and `gamma = float(np.clip(parameters[1], 0.01, 0.5))`. This covers R0 values from ~0.02 up to ~200, infectious periods from 2 to 100 days, and lets SBI freely explore the COVID-relevant parameter space. If bounding is still desired, use soft exponential-transform parameterization (e.g., `beta = np.exp(parameters[0])` with a log-scale prior) instead of hard clipping to preserve smooth gradients throughout parameter space."
+    },
+    {
+      "description": "The simultaneous discrete-time update draws new_recoveries = Binomial(I, p_recovery) using the pre-step infected count I, then applies both transitions at once. Over 60 steps this introduces accumulating bias: individuals who were just infected (new_infections) are excluded from recovery this step, but individuals who will recover (new_recoveries) are still counted in the infection force lambda_inf = beta*I/N. This over-counts the effective infectious pool and causes systematic overestimation of transmission, especially when I is large relative to N. This structural bias degrades trajectory fidelity and NLE.",
+      "severity": "major",
+      "location": "forward() \u2014 binomial sampling block and state update lines",
+      "suggestion": "Use a Reed-Frost chain-binomial formulation where the effective infectious population driving new infections excludes those simultaneously recovering. Concretely: first draw `new_recoveries = int(rng.binomial(n=I, p=p_recovery))`, compute effective infectious pool `I_eff = max(0, I - new_recoveries)`, then compute `lambda_inf = beta * float(I_eff) / float(N)` and `p_infection = 1.0 - np.exp(-lambda_inf)`, then draw `new_infections = int(rng.binomial(n=S, p=p_infection))`. This better approximates continuous-time dynamics in discrete steps and removes the systematic upward bias in transmission."
+    }
+  ]
+}

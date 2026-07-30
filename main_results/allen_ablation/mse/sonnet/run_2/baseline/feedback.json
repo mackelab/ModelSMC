@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The X1/X2 channel conductances (gbar_X1, gbar_X2, param_i, param_j) are extracted from params but never used anywhere in the simulation loop \u2014 they have zero effect on tau_V_inv, V_inf, or any state variable update. The simulator runs as a plain 3-channel HH model regardless of those parameters. This explains the dominant errors: skewness MSE=69.9 and kurtosis MSE=10.3 (wrong voltage-distribution shape due to missing afterhyperpolarization shaping) and spike-count MSE=2.88 (wrong firing rate). Adding a slow non-inactivating potassium current (M-current, I_M) via the gbar_X1 slot is the minimal fix needed to correct spike waveform asymmetry, AHP depth, and firing rate without introducing bursting.",
+  "issues": [
+    {
+      "description": "gbar_X1 and associated param_i/param_j are extracted but NEVER wired into tau_V_inv, V_inf, or any state-variable update. The model is therefore identical to plain HH for all inferred parameter values, making the extra parameters useless and leaving the dominant skewness (MSE 69.9), kurtosis (MSE 10.3), and spike-count (MSE 2.88) errors completely unaddressed.",
+      "severity": "critical",
+      "location": "tau_V_inv and V_inf expressions inside the simulation loop; missing gating-variable definition, storage tensor, init, and per-step update for X1",
+      "suggestion": "Implement an M-type (slow non-inactivating K+) current using gbar_X1. (1) Add a gating-variable kinetics function, e.g.: `def w_inf(x): return 1.0/(1.0 + Exp(-(x - (-35.0))/10.0))` and a fixed slow time constant `tau_w_val = 100.0` ms. (2) Allocate `w = torch.zeros((batch_size, time_steps), device=device)` and initialise `w[:, 0] = w_inf(V[:, 0])`. (3) In the loop add `w[:, i] = w_inf(V[:, i-1]) + (w[:, i-1] - w_inf(V[:, i-1])) * Exp(-tstep / tau_w_val)`. (4) Add `+ gbar_X1 * w[:, i-1]` to tau_V_inv and `+ gbar_X1 * w[:, i-1] * E_K` to V_inf (before dividing by tau_V_inv * C). This shapes the AHP, controls spike-rate adaptation, and directly reduces skewness/kurtosis errors while keeping tonic (non-bursting) firing."
+    },
+    {
+      "description": "param_i and param_j are negated on extraction (lines `param_i = -params[:, 8]` and `param_j = -params[:, 9]`), so their inferred values will always be in the range (-150, 0) and (-3000, 0). If these are later used as a half-activation voltage or time constant for the new channel, the negation will produce physiologically impossible values (negative time constants or wrong-sign voltage offsets) and prevent the optimizer from finding valid solutions.",
+      "severity": "major",
+      "location": "param_i = -params[:, 8] and param_j = -params[:, 9] extraction lines",
+      "suggestion": "Remove the negation: use `param_i = params[:, 8].float()` and `param_j = params[:, 9].float()` so their inferred values stay in the documented positive ranges [1e-4, 150] and [1e-4, 3000]. Then interpret them directly as, e.g., the M-current half-activation offset from rest (mV) and the slow time constant (ms) respectively. This ensures gradient-based inference can explore physiologically sensible parameter space."
+    }
+  ]
+}

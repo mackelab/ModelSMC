@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "All editable sections are completely empty \u2014 no additional ion channel kinetics, state variables, or current terms have been implemented despite parameters (gbar_X1, gbar_X2, param_i, param_j) being allocated for them. The model therefore runs as a vanilla 3-variable Hodgkin-Huxley, which is insufficient to reproduce the observed tonic spiking statistics (spike count, mean/variance/skewness/kurtosis of voltage). The high neg_avg_log_marginal_NLE of 26.2 is consistent with a systematic mismatch in firing-rate adaptation and subthreshold voltage dynamics.",
+  "issues": [
+    {
+      "description": "No additional channel is implemented in any of the five editable sections. gbar_X1, param_i, and param_j are extracted but never used. A slowly-activating (M-type) potassium current using gbar_X1 would improve spike-frequency regulation and correct the mean/variance/skewness of voltage during tonic stimulation without introducing bursting.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks",
+      "suggestion": "Implement an M-current (slow K\u207a, I_M) across all five editable sections. (1) Kinetics block: add `def p_inf(x): return 1.0/(1.0+Exp(-(x-param_i)/10.0))` and `def tau_p(x): return param_j_abs/(3.3*Exp((x-param_i)/20.0)+Exp(-(x-param_i)/20.0))` where `param_j_abs = torch.abs(param_j)` (param_j range gives ~1\u20133000 ms time constants, physically appropriate for M-current). (2) State variable declaration block: add `p = torch.zeros((batch_size, time_steps), device=device)`. (3) Initialization block: add `p[:, 0] = p_inf(V[:, 0])`. (4) Kinetics inside loop: no alpha/beta needed since p_inf/tau_p are direct. (5a) tau_V_inv: add `+ gbar_X1 * p[:, i-1]`. (5b) V_inf numerator: add `+ gbar_X1 * p[:, i-1] * E_K`. (6) State update: add `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p(V[:, i-1]))`. Use only X1 slot (keep X2 at zero / unused) to maintain parsimony."
+    },
+    {
+      "description": "param_i and param_j are defined with a leading minus sign (`param_i = -params[:, 8]`), meaning their inferred values will be negative. For an M-current this is physically meaningful (param_i \u2248 \u221260 to \u221230 mV for half-activation, param_j > 0 for time constant), but tau_p must guard against division by near-zero or negative values of param_j.",
+      "severity": "major",
+      "location": "param_j usage in tau_p denominator (inside simulation loop)",
+      "suggestion": "Use `param_j_abs = torch.clamp(torch.abs(param_j), min=1.0)` before computing tau_p to prevent numerical instability. Also clamp tau_p itself: `tau_p_val = torch.clamp(tau_p(V[:, i-1]), min=0.1)` so that very small time constants do not cause divergence in the exponential update."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+- **V**: Membrane voltage driven by Na⁺, K⁺, leak, and M-type K⁺ currents plus injected current
+- **m, h**: Fast Na⁺ activation/inactivation gates → rapid depolarization/repolarization
+- **n**: Delayed-rectifier K⁺ activation gate → action potential repolarization
+- **p**: Slow M-current K⁺ gate → spike-frequency adaptation (new addition)
+- **Assumptions**: Single-compartment, Hodgkin-Huxley formalism; gbar_M uses E_K; tau_p controlled by param_j

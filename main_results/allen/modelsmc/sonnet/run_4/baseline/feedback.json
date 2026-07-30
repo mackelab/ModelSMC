@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "All editable sections are completely empty \u2014 neither of the two pre-allocated channel slots (X1, X2) has been implemented. Despite having conductance parameters gbar_X1, gbar_X2, param_i, and param_j wired in, the simulation loop, tau_V_inv, and V_inf expressions never use them, so the model is functionally identical to a plain 3-channel HH model. This explains the high NLE: the optimizer cannot correct misfits in spike count, voltage mean/variance/skewness/kurtosis, or resting potential because none of the extra degrees of freedom are connected to the dynamics.",
+  "issues": [
+    {
+      "description": "M-type slow K+ current (X1) is absent. A slowly-activating, non-inactivating K+ current (Kv7/KCNQ, 'M-current') is the canonical addition for neurons that show regular tonic spiking without bursting or adaptation runaway. It directly controls inter-spike interval regularity and affects mean voltage during stimulation, spike count, variance, and skewness \u2014 exactly the statistics with large residuals here.",
+      "severity": "critical",
+      "location": "All five editable sections (kinetics, state-variable declaration, initialization, inner-loop update, tau_V_inv / V_inf expressions)",
+      "suggestion": "Add a single gating variable `p` for the M-current using `gbar_X1` as conductance and `param_i` as the half-activation voltage (it is already negated to act as a negative mV offset, e.g. ~-30 mV). Example kinetics: `alpha_p(x) = 1e-3*Exp(0.04*(x - param_i))`, `beta_p(x) = 1e-3*Exp(-0.04*(x - param_i))`. Declare `p = torch.zeros(...)`, initialize `p[:,0] = inf_x(alpha_p(V[:,0]), beta_p(V[:,0]))`, compute `a_p, b_p` each step and update `p[:,i]` the same way as `n`. Add `+ gbar_X1 * p[:,i-1]` to `tau_V_inv` and `+ gbar_X1 * p[:,i-1] * E_K` to `V_inf`. This connects `gbar_X1` and `param_i` to the dynamics for the first time."
+    },
+    {
+      "description": "Hyperpolarization-activated mixed-cation current Ih (X2) is absent, leaving resting-potential mean and standard deviation poorly matched. Ih is a low-threshold depolarizing current that sets the baseline voltage and adds a characteristic sub-threshold variance signature consistent with the non-zero resting Vsd seen in the data.",
+      "severity": "major",
+      "location": "All five editable sections, mirroring the M-current additions but for a hyperpolarization-activated gate `q`",
+      "suggestion": "Add gate `q` for Ih using `gbar_X2` as conductance and `param_j` as a scaling factor for the activation time constant. Ih activates upon hyperpolarization: `q_inf(x) = 1/(1 + Exp((x + 75)/5.5))`, `tau_q(x) = param_j * 1/(Exp(-0.086*(x+75)) + Exp(0.07*(x+75)))` (param_j already negated, so use `-param_j` or adjust the sign convention to keep tau positive). Reversal E_h \u2248 -30 mV (hardcode or use a fixed constant since no free parameter remains). Add `+ gbar_X2 * q[:,i-1]` to `tau_V_inv` and `+ gbar_X2 * q[:,i-1] * (-30.0)` to `V_inf`. Initialize `q[:,0] = q_inf(V[:,0])`. This will substantially improve resting-potential statistics without introducing bursting."
+    }
+  ]
+}

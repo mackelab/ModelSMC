@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) are extracted from the parameter vector but are completely unused in the simulation. No kinetics functions are defined for them, and they contribute nothing to tau_V_inv or V_inf, making the extra parameters entirely inert. This means the model is functionally identical to plain HH regardless of what the inference assigns to gbar_X1, gbar_X2, param_i, and param_j, which explains the poor NLE score.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never referenced anywhere in the simulation loop. No kinetics (alpha/beta or inf/tau functions) are defined for either channel, and neither channel appears in tau_V_inv or V_inf. The model is therefore a plain 3-channel HH regardless of inferred parameter values, severely limiting its expressive power.",
+      "severity": "critical",
+      "location": "EDITABLE SECTION blocks inside the simulation loop (tau_V_inv, V_inf, state-variable update)",
+      "suggestion": "Implement at least one additional channel using gbar_X1 and param_i. A good first choice for regular tonic spiking is a slow non-inactivating K+ M-current with one gating variable p: `p_inf(V) = 1/(1+exp(-(V - param_i)/10))`, `tau_p(V) = 1/(0.001*(V-param_i-30)/(1-exp(-(V-param_i-30)/9)) + 0.001*(-(V-param_i-30))/(1-exp((V-param_i-30)/9)))` (or a simpler fixed-form tau). Then add `+ gbar_X1 * p` to tau_V_inv and `+ gbar_X1 * p * E_K` to the numerator of V_inf, and update p each timestep like n/m/h. This channel will let inference tune both the conductance and half-activation voltage to match the observed tonic firing statistics without introducing bursting."
+    },
+    {
+      "description": "Because no additional channel kinetics are defined, state-variable storage and initialisation for the extra channels are also missing, so even if the current terms were added the simulation would error or use stale values.",
+      "severity": "major",
+      "location": "State-variable initialisation block and simulation loop state-variable update blocks",
+      "suggestion": "After defining kinetics for the M-current (or whichever channel is chosen), allocate `p = torch.zeros((batch_size, time_steps), device=device)`, initialise `p[:, 0] = p_inf(V[:, 0])`, and inside the loop add `p[:, i] = p_inf(V_prev) + (p[:, i-1] - p_inf(V_prev)) * Exp(-tstep / tau_p(V_prev))` where V_prev = V[:, i-1]. This keeps the numerical scheme consistent with the existing Euler-exponential integration used for n, m, h."
+    }
+  ]
+}

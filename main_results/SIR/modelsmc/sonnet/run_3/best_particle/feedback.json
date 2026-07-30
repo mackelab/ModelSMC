@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The internal parameter clipping in `forward()` (beta clipped to [0.05, 0.6], gamma to [0.05, 0.20]) creates a flat gradient landscape for the SBI optimizer \u2014 when optimized parameters are mapped to the same clipped value over a wide region, the NLE neural network cannot distinguish different parameter settings, producing very poor marginal likelihood scores (~-486 avg log NLE). A secondary issue is that the high-variance stochastic Binomial model makes the exact observed trajectories low-probability, further degrading NLE.",
+  "issues": [
+    {
+      "description": "Hard parameter clipping inside `forward()` silently flattens the SBI inference landscape. When the SBI framework proposes beta values outside [0.05, 0.6] or gamma values outside [0.05, 0.20], they all produce identical dynamics, making the marginal likelihood surface completely flat in those regions. This causes the NLE to assign nearly identical (and poor) likelihoods regardless of the true parameter values, explaining the very negative neg_avg_log_marginal_NLE of -486.",
+      "severity": "critical",
+      "location": "forward() lines: `beta = float(np.clip(parameters[0], 0.05, 0.6))` and `gamma = float(np.clip(parameters[1], 0.05, 0.20))`",
+      "suggestion": "Remove the internal clipping entirely, or replace with much wider soft bounds (e.g., beta in [0.001, 2.0], gamma in [0.001, 1.0]) using `np.clip`. Better yet, apply `beta = float(np.abs(parameters[0]))` and `gamma = float(np.abs(parameters[1]))` to only enforce positivity without restricting the SBI search space, then let the SBI prior handle the realistic range. This ensures the forward model is injective in parameter space so the NLE can learn a meaningful likelihood surface."
+    },
+    {
+      "description": "The fully stochastic Binomial model introduces high trajectory variance, making the exact observed training states low-probability events. For SBI with very few samples, this high stochasticity means the marginal likelihood integral is dominated by noise rather than signal. The NLE cannot learn a tight posterior because every simulator run produces a different trajectory even at the true parameters.",
+      "severity": "major",
+      "location": "forward() lines: `new_infections = int(rng.binomial(n=S, p=p_infection))` and `new_recoveries = int(rng.binomial(n=I, p=p_recovery))`",
+      "suggestion": "Reduce effective stochasticity by using the deterministic (expected) transitions as the mean and adding only small Gaussian noise calibrated to the population size: `new_infections = int(np.round(np.clip(S * p_infection + rng.normal(0, np.sqrt(S * p_infection * (1 - p_infection) + 1e-6) * 0.1), 0, S)))`. This keeps the model stochastic (required for SBI) but concentrates probability mass near the mean trajectory, dramatically improving the marginal NLE for small training datasets."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+- **Variables**: S (susceptible), I (infected), R (recovered); N = S+I+R strictly conserved; state schema fixed to {S,I,R}
+- **β**: β = 0.15 + 0.35·σ(param[0]) ∈ (0.15, 0.50) [1/day]; init[0]=0.0 → β≈0.325; ITER37 CHANGE: narrowed from (0.10,0.60) per Iter36 feedback (issue 2, major); removes sub-epidemic tail
+- **γ**: γ = 0.05 + 0.10·σ(param[1]) ∈ (0.05, 0.15) [1/day]; init[1]=0.0 → γ≈0.10; ITER37 CHANGE (critical): narrowed from (0.04,0.29); centered on COVID-19 consensus 1/γ=10 days; avoids SBI waste on implausible space
+- **Initialization**: ITER 37 TWO TARGETED CHANGES per Iter36 feedback: (1) CRITICAL narrow γ to 0.05+0.10σ ∈(0.05,0.15); (2) MAJOR narrow β to 0.15+0.35σ ∈(0.15,0.50); init=[0.0,0.0] → β≈0.325, γ≈0.10, R0≈3.25
+- **Simultaneous Binomial noise**: Bin(S, 1−exp(−β·I/N)) and Bin(I, 1−exp(−γ)) from ORIGINAL time-t state; proven best SBI noise model: Iter16→-52.5, Iter18→-45.3; single dt=1 step FROZEN

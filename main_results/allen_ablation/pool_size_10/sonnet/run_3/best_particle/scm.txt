@@ -1,0 +1,5 @@
+- **V**: driven by Na⁺ (m³h), K⁺-DR (n⁴), leak, M-current (p), and injected current
+- **m, h, n**: fast voltage-dependent HH gating variables (alpha/beta kinetics)
+- **p**: slow M-current (IM) activation gate; Boltzmann steady-state, voltage-independent τ_p
+- **gbar_KM = params[:,6], V_half from param_i (params[:,8], no negation), τ_p from param_j (params[:,9], no negation)**
+- **Assumption**: tonic spiking regularized by IM adaptation; no burst-inducing mechanisms; params[:,7] reserved for next channel

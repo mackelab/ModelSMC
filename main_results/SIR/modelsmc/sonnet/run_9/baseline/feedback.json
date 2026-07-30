@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in SimulatorStep is completely unimplemented \u2014 it simply copies the state and returns it unchanged, performing no SIR dynamics whatsoever. This causes the simulator to output a flat trajectory (no infections spread, no recoveries), which is entirely inconsistent with observed COVID SIR data and results in astronomically high negative log-likelihood values (1.82e+32 / 1.82e+34).",
+  "issues": [
+    {
+      "description": "The forward function contains no SIR model logic. The discrete-time SIR equations are missing: new_infections = round(beta * S * I / N), new_recoveries = round(gamma * I), S_next = S - new_infections, I_next = I + new_infections - new_recoveries, R_next = R + new_recoveries, where N = S + I + R. Without this, the simulator produces a static, non-evolving trajectory that matches no realistic epidemic data, causing the inference to fail completely.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward (lines with '...' and 'next_state = state.copy()')",
+      "suggestion": "Implement the discrete SIR step using parameters[0] as beta (transmission rate) and parameters[1] as gamma (recovery rate). Use binomial sampling for stochasticity: new_infections = rng.binomial(S, 1 - np.exp(-beta * I / N)) and new_recoveries = rng.binomial(I, 1 - np.exp(-gamma)), then compute S_next = S - new_infections, I_next = I + new_infections - new_recoveries, R_next = R + new_recoveries, clipping all values to be non-negative integers. This formulation is the standard stochastic SIR and is both interpretable and well-identified by SBI with only 2 parameters."
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. Additionally, there is no validation or bounding of parameter values (beta, gamma should be in (0,1) for daily rates), which can cause numerical instability during SBI optimization.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.get_parameters",
+      "suggestion": "Initialize self.parameters = np.array([0.3, 0.1]) in __init__ as sensible COVID defaults (beta~0.3, gamma~0.1 giving R0~3). In the forward method, clip parameters: beta = np.clip(parameters[0], 1e-6, 1.0) and gamma = np.clip(parameters[1], 1e-6, 1.0) to prevent negative probabilities or division errors in the binomial sampling."
+    }
+  ]
+}

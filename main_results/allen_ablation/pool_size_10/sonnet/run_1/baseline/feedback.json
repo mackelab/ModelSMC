@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (gbar_X1, gbar_X2, param_i, param_j) are extracted from `params` but are completely unused \u2014 no gating kinetics, no state variables, no initialization, and no current contributions appear in any of the editable sections. This means the simulator is effectively a plain 3-channel HH model regardless of what the inference algorithm places in those parameter slots, causing a systematic mismatch with the experimental tonic spiking data.",
+  "issues": [
+    {
+      "description": "gbar_X1 (and optionally gbar_X2) along with param_i / param_j are declared but never wired into the simulation. All four editable sections that should contain the new channel's kinetics, state-variable declarations, initialization, per-step updates, and contributions to tau_V_inv / V_inf are left empty. The result is that the model cannot represent any dynamics beyond classic HH, making it structurally incapable of reproducing the experimental statistics (spike count, resting potential distribution, voltage moments).",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks and the corresponding tau_V_inv / V_inf expressions",
+      "suggestion": "Implement a slow, non-inactivating M-type K\u207a current (Kv7/KCNQ) using gbar_X1 as its maximal conductance and param_i as the half-activation voltage (V_half, negative mV range after negation). Add: (1) kinetic functions \u2014 `w_inf(V) = 1/(1+exp(-(V-V_half)/10))`, `tau_w(V) = 1/(0.001*exp((V+30)/15) + 0.001*exp(-(V+30)/15))` (or a fixed slow tau ~100 ms); (2) a state tensor `w` initialized to `w_inf(V[:,0])`; (3) per-step update `w[:,i] = w_inf(a_w) + (w[:,i-1] - w_inf(a_w))*Exp(-tstep/tau_w_val)`; (4) contributions `+ gbar_X1 * w[:,i-1]` in tau_V_inv and `+ gbar_X1 * w[:,i-1] * E_K` in V_inf. This M-current slows and regularizes tonic firing without inducing bursting."
+    },
+    {
+      "description": "param_i and param_j are negated at extraction (`-params[:,8]`, `-params[:,9]`) but their intended use (reversal potential, half-activation voltage, or time-constant) is never documented or enforced. If the inference engine learns values for these parameters but they map to an unintended sign or scale, the channel (once added) may operate at physiologically nonsensical voltages.",
+      "severity": "major",
+      "location": "param_i = -params[:, 8] and param_j = -params[:, 9] extraction lines",
+      "suggestion": "After implementing the M-current, assign param_i explicitly as `V_half_w = param_i` (half-activation voltage, expected ~-35 mV after negation) and optionally param_j as a time-constant scaling factor. Add a comment documenting units and physiological range, and clamp values if needed (e.g., `V_half_w = torch.clamp(param_i, -80, -10)`) to prevent the optimizer from pushing them to degenerate regions."
+    }
+  ]
+}

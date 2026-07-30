@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "All editable sections are completely empty \u2014 the parameters gbar_X1, gbar_X2, param_i, and param_j are extracted but never wired into any current, gating variable, or voltage update. The simulator therefore runs as a plain three-current HH model regardless of what the inference engine proposes for those four parameters, making the NLE irreducibly high (264).",
+  "issues": [
+    {
+      "description": "Missing channel implementation: gbar_X1, gbar_X2, param_i, and param_j are declared but never used anywhere in the simulation loop. Every editable section is left blank, so the inference procedure cannot improve the fit by adjusting these parameters.",
+      "severity": "critical",
+      "location": "All five '# ===== BEGIN EDITABLE SECTION =====' blocks inside forward()",
+      "suggestion": "Add a slow M-type (Kv7 / muscarinic) potassium current using slot X1. This channel activates slowly at subthreshold voltages and is the canonical mechanism for converting burst-prone HH neurons into regular tonic spikers \u2014 exactly matching the data description. Concretely: (1) In the kinetics section, define `m_inf_M = 1.0 / (1.0 + Exp((param_i - V) / 10.0))` (param_i is already negative, giving a half-activation near -35 mV) and `tau_M = torch.abs(param_j).clamp(min=1.0)` (param_j magnitude spans 0\u20133000 ms, ideal for the slow M-current). (2) Add a state variable `p` (M-current activation), initialize it with `m_inf_M(V[:,0])`, and update it each step analogously to `n`. (3) Add `gbar_X1 * p` to `tau_V_inv` and `gbar_X1 * p * E_K` to the numerator of `V_inf`. Using only one slot keeps the model parsimonious as required. gbar_X2 can remain unused unless a second discrepancy persists after re-fitting."
+    },
+    {
+      "description": "param_j is negated on extraction (`param_j = -params[:, 9]`), but its raw magnitude (0\u20133000) is what is needed for a time constant. Using the negated value directly in a torch.exp() or division would produce negative time constants and NaN/inf voltages at runtime.",
+      "severity": "major",
+      "location": "Parameter extraction block: `param_j = -params[:, 9].float()`",
+      "suggestion": "When param_j is used as a time constant (e.g., for the M-current), apply `tau_M = torch.abs(param_j).clamp(min=1.0)` rather than using param_j raw. Alternatively, remove the negation during extraction and write `param_j = params[:, 9].float()` so the value is directly positive, consistent with how nois_fact (params[:,5]) is used without negation."
+    }
+  ]
+}

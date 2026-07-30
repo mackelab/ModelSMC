@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Two parameters (params[:, 7] = gbar_X2 and params[:, 8] = param_i) are completely unused, strongly indicating a second ion channel is missing. The high neg_avg_log_marginal_NLE (~26) confirms a large systematic discrepancy with experimental recordings that cannot be explained by noise or M-current mis-tuning alone.",
+  "issues": [
+    {
+      "description": "params[:, 7] (gbar_X2) and params[:, 8] (param_i) are declared as unused/reserved but are never incorporated into the dynamics. This leaves a whole conductance channel absent from the simulation, which is the primary cause of the large log-likelihood penalty.",
+      "severity": "critical",
+      "location": "Parameter extraction block (~line 30) and the simulation loop forward pass",
+      "suggestion": "Implement a transient A-type potassium current (I_A = gbar_X2 * a^4 * b * (V - E_K)) using gbar_X2 as the peak conductance and param_i as a time-constant scale (similar to how param_j scales tau_p for the M-current). Suggested kinetics: activation gate 'a' with alpha_a(V) = 0.02*(V+45)/(1-exp(-(V+45)/9)) style and inactivation gate 'b' with a sigmoid steady-state around -80 mV and tau_b = param_i / (cosh((V+75)/12) + 1e-7). Add the gating variables a and b to the state vector, initialise them at steady state, update them with exponential-Euler inside the loop, and add the conductance term gbar_X2 * a[:, i-1]**4 * b[:, i-1] to both tau_V_inv and V_inf (driving toward E_K)."
+    },
+    {
+      "description": "The M-current time constant tau_p divides by (3.3*(exp(v1/20)+exp(-v1/20))+1e-7), which equals 6.6*cosh(v1/20). For large |v1| this collapses to nearly zero, making tau_p extremely large and numerically stiff; the +1e-7 guard is too small relative to the cosh denominator range.",
+      "severity": "minor",
+      "location": "tau_p function definition and its use in the simulation loop",
+      "suggestion": "Replace the guard with a lower-bound clamp: tau_p_v = torch.clamp((-param_j) / (3.3*(Exp(v1/20.0)+Exp(-v1/20.0))), min=1e-2). This prevents pathologically large time constants without changing the biophysical behaviour in the normal operating range, and removes the need for the +1e-7 in the Exp update of p."
+    }
+  ]
+}

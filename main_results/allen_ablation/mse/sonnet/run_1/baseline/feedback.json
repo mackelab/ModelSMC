@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The dominant failures are in skewness (MSE=47.9), kurtosis (MSE=17.7), and spike count (MSE=4.0), while the resting potential mean is near-perfect (MSE=0.000212). This pattern strongly indicates the model is missing a slow voltage-dependent K+ adaptation current (e.g., M-current / Kv7) that shapes the interspike voltage distribution, controls adaptation-driven spike rate, and introduces the asymmetric AHP waveform responsible for the observed skewness and kurtosis of the voltage trace. The current base HH model has no adaptation mechanism, so it produces overly regular, symmetric spike trains whose voltage distribution does not match the experimental data.",
+  "issues": [
+    {
+      "description": "Missing slow K+ M-current (adaptation current). Without it, the model cannot reproduce the correct spike count, AHP shape, or voltage distribution skewness/kurtosis. The M-current is a non-inactivating, voltage-activated K+ current with slow kinetics that causes spike-frequency adaptation and shapes the inter-spike voltage trajectory. This directly explains the three largest errors: skewness (47.9), kurtosis (17.7), and spike count (4.0).",
+      "severity": "critical",
+      "location": "All four EDITABLE SECTIONs (kinetics, state variables, initialization, simulation loop, tau_V_inv, V_inf)",
+      "suggestion": "Add a slow K+ M-current using gbar_X1 as conductance and param_i as the half-activation voltage. In the kinetics section add: `def w_inf(x): return 1.0 / (1 + Exp(-0.1 * (x - param_i)))` and use a fixed slow time constant (e.g., 100 ms). Declare state variable `w = torch.zeros(...)`, initialize `w[:, 0] = w_inf(V[:, 0])`. In the loop update: `w[:, i] = w_inf(V[:, i-1]) + (w[:, i-1] - w_inf(V[:, i-1])) * Exp(-tstep / 100.0)`. Add `+ gbar_X1 * w[:, i-1]` to tau_V_inv and `+ gbar_X1 * w[:, i-1] * E_K` to the numerator of V_inf. Since param_i = -params[:,8] and params are positive (range 1e-4 to 150), param_i covers roughly -150 to 0 mV, which is suitable for a K+ channel half-activation voltage around -30 to -20 mV."
+    },
+    {
+      "description": "Resting membrane std (MSE=2.69) and variance during stimulation (MSE=3.79) errors suggest the noise scaling or subthreshold dynamics are slightly off. The M-current addition will partially fix the stimulation variance by changing the inter-spike trajectory, but the resting std may need noise factor calibration.",
+      "severity": "major",
+      "location": "nois_fact parameter and the random noise term in V_inf",
+      "suggestion": "After adding the M-current, re-examine whether the nois_fact (params[:,5]) is sufficient to match resting std. The resting std MSE of 2.69 suggests the simulated resting noise is too low or too high. If it remains off after adding the M-current, consider verifying that the noise injection `nois_fact * randn / sqrt(dt)` is correctly scaled for the time step used (it should be in units consistent with current injection, i.e., uA/cm\u00b2). No code restructuring is needed\u2014the existing formulation is correct in form, but ensure the parameter prior for nois_fact is explored broadly enough by the inference engine."
+    }
+  ]
+}

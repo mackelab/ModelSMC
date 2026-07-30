@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, A-type K⁺ transient current, and injected current
+- **m, h** (Na⁺ gating): voltage-dependent fast sodium activation/inactivation (HH standard)
+- **n** (K⁺ gating): delayed-rectifier potassium activation (HH standard)
+- **b** (A-current inactivation): slow inactivation gate with **voltage-dependent time constant** tau_b(V) = tau_b_max / cosh((V - b_half)/20)
+- **Assumptions**: single-compartment HH; A-current uses a^3*b Connor-Stevens form; b_half (param_i) and tau_b_max (param_j) tunable; voltage-dependent tau_b is the structural change from prior iteration

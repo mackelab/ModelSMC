@@ -1,0 +1,5 @@
+- **V**: membrane voltage; driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h**: Na⁺ fast activation/inactivation gates → voltage-dependent α/β kinetics
+- **n**: K⁺ delayed-rectifier activation gate → voltage-dependent α/β kinetics
+- **w**: M-current (IKM) slow non-inactivating K⁺ gate → sigmoid steady-state, slow scalar τ_w
+- **Assumptions**: single-compartment, Hodgkin-Huxley formalism; IKM provides tonic-spiking regularity via slow AHP without bursting

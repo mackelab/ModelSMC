@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "Model fails to use the two extra channel slots and several parameter sign flips likely prevent the simulator from matching held-out tonic-spiking data. The missing channel kinetics and missing contributions of X1/X2 to membrane currents are the primary cause of the very large negative-log-marginal metrics.",
+  "issues": [
+    {
+      "description": "Extracted extra-channel parameters (gbar_X1, gbar_X2, param_i, param_j) are not integrated into the membrane equations or gating kinetics. As a result the two available extensible channels have zero effect on V, and the model cannot adjust important subthreshold/sustained conductances to match the data.",
+      "severity": "critical",
+      "location": "Editable kinetics/state-variable blocks (several TODO blocks; tau_V_inv and V_inf construction)",
+      "suggestion": "Implement at least one additional channel using the X1 slot and only add X2 if necessary. Recommendation: start with a slow, non-inactivating K-type (M-type) channel to modulate firing rate and mean voltage without producing bursting. Concretely:\n- Add a gating variable p with steady-state and time-constant functions, e.g. p_inf(V)=1/(1+exp((V - V_half)/k)), tau_p(V)=tau0 + tau_scale/(1+exp((V - V_half_tau)/k_tau)). Use param_i as V_half (or V_half offset) and param_j as a time-scale multiplier (or clamp them to positive values).\n- In tau_V_inv add contribution: + gbar_X1 * p\n- In V_inf add: + gbar_X1 * p * E_K (or an appropriate reversal potential; E_K is fine for a K-type channel)\n- Initialize and update p analogously to m/n/h using inf_x/tau_x style updates, i.e. p[:,0]=p_inf(V[:,0]); p[:,i]=p_inf + (p[:,i-1]-p_inf)*Exp(-dt/tau_p).\n- Keep the channel conductance small-to-moderate and bound parameters to prevent bursting or depolarization block. Test with only X1 first and re-evaluate summary stats before adding X2."
+    },
+    {
+      "description": "Several parameter sign manipulations look incorrect and will systematically flip physiologically meaningful parameters (E_leak, Vt, param_i, param_j). This can invert gating-voltage relationships and make fitted parameters unintelligible or unusable by added kinetics.",
+      "severity": "major",
+      "location": "Parameter extraction block near top (E_leak = -params[:,3], Vt = -params[:,4], param_i = -params[:,8], param_j = -params[:,9])",
+      "suggestion": "Remove the unexpected negations (or document why they are needed). Use the raw parameter values with explicit clamping and/or sign constraints: E_leak = params[:,3] (or E_leak = params[:,3] - offset if encoded differently), Vt = params[:,4], param_i = params[:,8], param_j = params[:,9]. If parameters are passed as positive-only in the training pipeline, enforce positivity with torch.abs or torch.clamp where appropriate rather than negating. After fixing, re-run short simulations and visualize gating curves (m,h,n and the new p) to confirm correct voltage dependence."
+    }
+  ]
+}

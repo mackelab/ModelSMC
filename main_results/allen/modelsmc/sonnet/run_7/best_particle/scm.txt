@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-type K⁺, and injected current
+- **m, h** (Na⁺ gates): standard HH voltage-dependent α/β kinetics
+- **n** (delayed-rectifier K⁺ gate): standard HH voltage-dependent α/β kinetics
+- **w** (M-current gate, X1 slot): slow Boltzmann activation fixed at V_half=-35 mV; tau_w=params[:,7] clamped [10,120] ms
+- **Assumptions**: single-compartment; E_K=-77 mV; M-current uses exactly 2 X1 params (gbar_M, tau_w); X2 and params[:,8:10] unused

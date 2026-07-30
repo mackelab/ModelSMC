@@ -1,0 +1,5 @@
+- **V** ← Na current (m³h), K current (n⁴), leak, M-current (p), injected current, noise
+- **m, h** ← voltage-dependent Na activation/inactivation; fast kinetics via α/β rates
+- **n** ← voltage-dependent K activation; intermediate kinetics via α/β rates
+- **p** ← slow non-inactivating M-type K⁺ activation; Boltzmann steady-state, slow τ_p
+- **Assumptions**: single-compartment, Hodgkin-Huxley kinetics; M-current regularizes tonic firing via subthreshold adaptation without bursting

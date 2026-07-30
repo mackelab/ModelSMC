@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` method in SimulatorStep is completely unimplemented (contains only `...` placeholder), returning the unchanged state at every step. This means the simulator produces no dynamics whatsoever, leading to catastrophically wrong likelihoods (neg_avg_log_marginal_NLE ~3.24e+27). The SIR transition logic using the two learnable parameters (beta, gamma) must be fully coded.",
+  "issues": [
+    {
+      "description": "The `forward` method body is entirely missing: it contains only the ellipsis placeholder `...` and returns `next_state = state.copy()` with no SIR dynamics applied. No new infections or recoveries are ever computed, so the simulator is identically wrong for every trajectory step. This is the sole cause of the catastrophic metric values.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward (lines with `...` and `next_state = state.copy()`)",
+      "suggestion": "Implement stochastic discrete-time SIR dynamics. Let parameters[0] = beta (transmission rate) and parameters[1] = gamma (recovery rate). Compute N = S + I + R. Use binomial draws for new infections: `new_infections = rng.binomial(S, 1 - np.exp(-beta * I / N))` and new recoveries: `new_recoveries = rng.binomial(I, 1 - np.exp(-gamma))`. Then update: `S_new = S - new_infections`, `I_new = I + new_infections - new_recoveries`, `R_new = R + new_recoveries`. Return `{'S': int(S_new), 'I': int(I_new), 'R': int(R_new)}`."
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so any call to `get_parameters()` before `set_parameters()` will raise an AttributeError. Additionally, there is no validation that beta and gamma are in physically meaningful ranges (0 < beta, 0 < gamma < 1), which can produce NaN/negative population counts during SBI optimisation.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.set_parameters",
+      "suggestion": "In `__init__`, add a default initialisation such as `self.parameters = np.array([0.3, 0.1])`. In `set_parameters`, clamp or assert that `parameters[0] > 0` and `0 < parameters[1] < 1` to keep the model in a valid physical regime and prevent degenerate trajectories during likelihood estimation."
+    }
+  ]
+}

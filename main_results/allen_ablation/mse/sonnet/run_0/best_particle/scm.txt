@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, A-type K⁺ (IA), and injected current
+- **m, h** (Na⁺ gates): fast voltage-dependent activation/inactivation (HH α/β kinetics)
+- **n** (delayed-rectifier K⁺ gate): slow activation via HH α/β kinetics
+- **a_ch, b_ch** (A-type K⁺ gates, NEW): fast activation / slow voltage-dependent inactivation; channel fully inactivates at rest (~-65 mV), produces transient outward K⁺ at spike initiation, controls inter-spike interval without tonic suppression
+- **Assumptions**: tonic spiking only, no burst mechanism; IA chosen over M-current because M-current caused chronic tonic hyperpolarization and spike suppression in prior iterations

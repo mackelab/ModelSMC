@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "All TODO sections remain empty \u2014 no additional ion channels have been implemented in the X1/X2 slots. The simulator is running as a plain 3-channel Hodgkin-Huxley model, which is insufficient to reproduce the target neuron's tonic spiking statistics (particularly spike count, mean stimulation voltage, and higher-order moments). The neg_avg_log_marginal_NLE of 26.2 confirms substantial mismatch. An M-type slow K\u207a current (Kv7/KCNQ) in slot X1 is the most parsimonious addition: it regularises tonic firing without introducing bursting, and its single gating variable `p` maps cleanly onto gbar_X1 (conductance) and param_i (half-activation voltage).",
+  "issues": [
+    {
+      "description": "No additional channels are implemented despite all TODO stubs being present. The target neuron requires at least one extra current beyond the classic HH set to match spike-count, mean stimulation voltage, voltage variance, and skewness statistics. An M-current (slow, non-inactivating K\u207a) is ideal for tonic spiking without bursting.",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks inside forward()",
+      "suggestion": "Add an M-current using gbar_X1 and param_i. (1) Kinetics block: `def p_inf(x): return 1.0/(1.0 + Exp(-(x - param_i)/10.0))` and `def tau_p(x): return 1.0/(3.3*Exp((x-param_i)/40.0) + 3.3*Exp(-(x-param_i)/20.0)) + 1.0`. (2) State variable: `p = torch.zeros((batch_size, time_steps), device=device)` with init `p[:,0] = p_inf(V[:,0])`. (3) Inside the loop compute the steady state and update: `p[:,i] = p_inf(V[:,i-1]) + (p[:,i-1] - p_inf(V[:,i-1])) * Exp(-tstep / tau_p(V[:,i-1]))`. (4) Add `+ gbar_X1 * p[:,i-1]` to tau_V_inv and `+ gbar_X1 * p[:,i-1] * E_K` to the numerator of V_inf. This single change adds only two inferred parameters (gbar_X1, param_i) and reproduces regular tonic adaptation without bursting."
+    },
+    {
+      "description": "param_i and param_j are extracted and negated but are never referenced anywhere in the simulation. They are wasted degrees of freedom that the inference engine cannot leverage, preventing proper calibration of any channel kinetics that depend on a voltage threshold or time-constant scale.",
+      "severity": "major",
+      "location": "param extraction block (params[:,8] and params[:,9]) and all subsequent editable sections",
+      "suggestion": "Use param_i as the half-activation voltage V_half for the M-current p_inf and tau_p functions (replacing the hard-coded offsets shown above). If a second channel (X2) is added, use param_j as its corresponding kinetic parameter (e.g., a time-constant denominator or half-activation shift). If only one channel is needed, leave gbar_X2 unused but ensure param_i is wired into the X1 kinetics so the sampler can adjust the activation threshold to fit the resting potential and spike-count statistics simultaneously."
+    }
+  ]
+}

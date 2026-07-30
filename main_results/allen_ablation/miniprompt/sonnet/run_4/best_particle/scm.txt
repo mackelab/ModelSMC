@@ -1,0 +1,5 @@
+- **V**: driven by Na+, K+ (DR), leak, M-current (IM), and A-type K+ (IA) + input current
+- **m, h** (Na+): fast activation/inactivation; **n** (DR K+): slow activation — standard HH, depend on V and Vt
+- **p** (IM gate): slow non-inactivating K+; voltage-midpoint from param_i (negative, ~-35 mV), time-constant scaled by param_j
+- **a, b** (IA gates): fast transient K+ (Connor-Stevens style a⁴·b); gbar_X2 conductance; mediates early repolarization
+- **Assumptions**: single-compartment; E_K shared by DR, IM, IA; channels are independent; param_i stored positive, negated internally to yield physiological midpoint

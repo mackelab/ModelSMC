@@ -1,0 +1,5 @@
+- **V**: Membrane voltage driven by Na⁺, K⁺, leak, M-current (Kv7), and injected current
+- **m, h**: Fast Na⁺ activation/inactivation; **n**: Delayed-rectifier K⁺ activation (HH standard)
+- **p**: M-current gate — slow subthreshold K⁺, promotes regular tonic spiking without bursting
+- **gbar_M** (X1), **V_half_M** (param_i), **tau_max_M** (param_j): M-current conductance, half-activation, peak time constant
+- **Key structural change**: Fully self-consistent alpha/beta kinetics for M-current gate (mirrors HH formulation), ensuring p_inf and tau_p are derived from the same rate functions, fixing the inconsistency in prior iterations

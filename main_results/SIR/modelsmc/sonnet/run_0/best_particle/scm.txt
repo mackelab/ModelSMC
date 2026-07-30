@@ -1,0 +1,5 @@
+- Variables: S (susceptible), I (infectious), R (recovered), N = S+I+R (conserved exactly by Binomial construction)
+- S → I: Binomial(S, 1−exp(−β·I/N)), drawn from time-t state; β ∈ (0.05, 0.50)
+- I → R: Binomial(I, 1−exp(−γ)), drawn from time-t state simultaneously; γ ∈ (0.04, 0.18)
+- Parameters: θ = [raw_β, raw_γ]; sigmoid-mapped to COVID-realistic ranges (R0 ≈ 0.3–12, 6–25 day infectious period)
+- Assumption: canonical discrete-time stochastic SIR Markov kernel; Binomial draws give exact transition density for NLE

@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by transient Na⁺, delayed-rectifier K⁺, leak, INaP, injected current, and noise
+- **m, h** (Na⁺ transient gates): standard HH voltage-dependent fast activation/inactivation
+- **n** (K⁺ gate): standard HH delayed-rectifier activation
+- **INaP** (X1, instantaneous, persistent Na⁺): Boltzmann gate; gbar_NaP = params[6], V_half_NaP = −params[7], k_NaP = 9.0 mV (fixed, physiologically calibrated width avoiding steep-slope instability); amplifies subthreshold depolarisation → regular tonic firing
+- **Assumptions**: E_K = −90 mV (mammalian standard, corrected from base); X2 slot unused (parsimony — one well-calibrated channel preferred over two interacting channels with identifiability problems); no adaptation, no bursting

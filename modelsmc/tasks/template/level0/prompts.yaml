@@ -1,0 +1,21 @@
+system_description: |
+  # TEMPLATE SIMULATION TASK
+
+  ## TASK OVERVIEW
+  TODO: add task overview here
+
+  ## OPTIMIZATION TARGETS
+  TODO: add optimization targets here
+
+  ## DATASET INFORMATION
+  TODO: add dataset information here
+
+signature_description: |
+  ## INPUT DETAILS
+  TODO: add input details here
+
+  ## OUTPUT DETAILS
+  TODO: add output details here
+
+task_description: |
+  TODO: add task description here

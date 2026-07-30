@@ -1,0 +1,5 @@
+max_iter: 15
+few_shot_examples: 3
+verbose: False
+max_num_itr_no_improvement: 8
+use_chain_of_thought: False

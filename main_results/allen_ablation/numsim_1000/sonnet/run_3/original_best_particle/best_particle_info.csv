@@ -1,0 +1,2 @@
+neg_avg_log_marginal_NLE,neg_log_marginal_NLE,timeout_evidence_estimation,mse,mse_per_dim,neg_avg_log_likelihood_NLE,neg_log_likelihood_NLE
+31.617748260498047,316.177490234375,False,,"[6.345000267028809, nan, nan, nan, nan, nan, nan]",33.9682731628418,339.6827392578125

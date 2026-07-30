@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺ (fast transient), K⁺ (delayed rectifier), leak, INaP (instantaneous, params[:,6,7,8]), IKM (slow ODE gate, params[:,9]), injected current, noise
+- **m, h** (Na⁺ gates): fast voltage-dependent HH activation/inactivation
+- **n** (K⁺ delayed-rectifier gate): moderate voltage-dependent activation
+- **INaP** (params[:,6,7,8]): `gbar_NaP=0.5*sigmoid(raw-5)→(0.003,0.496)mS/cm²` [FIX iter10: multiplier 1→0.5 eliminates pre-stimulus spontaneous spiking]; `V_half_NaP=-(30+20*sigmoid(raw-60))→(-50,-30)mV` [FIX iter10: shift from (-60,-40) to (-50,-30)mV, at rest(-65mV,V_half=-50mV,k=5.5): p_inf≈0.059→negligible resting INaP]; `k_NaP=1+9*sigmoid(raw-75)→(1,10)mV`
+- **IKM** (params[:,9]): M-type K⁺ ODE gate; `gbar_KM=1.0*sigmoid((raw-1500)/300)→(0.007,0.993)mS/cm²` [FIX iter10: multiplier 0.5→1.0 for broader dynamic range]; `tau_w=50ms` [FIX iter10: reduced from 100ms; decays ~50% per ISI at 10Hz, enabling genuine per-spike regulation rather than DC offset]; fixed V_half_KM=−35mV, k_KM=5mV, E_K=−107mV; `w_KM_decay=math.exp(-tstep/50)`; zero at rest (w_inf(-65mV)≈0.0025)

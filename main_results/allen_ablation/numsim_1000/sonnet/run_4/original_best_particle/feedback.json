@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current time constant `tau_w = -params[:, 9]` is critically misconfigured: if the inference engine converges to non-negative values for `params[:, 9]` (as most samplers assume positive or unconstrained-real parameters), `tau_w` becomes negative or zero. A negative `tau_w` causes `Exp(-tstep / tau_w)` to grow exponentially rather than decay, making the M-current gate numerically unstable and producing garbage voltage traces \u2014 directly responsible for the very high neg_avg_log_marginal_NLE \u2248 25.1.",
+  "issues": [
+    {
+      "description": "tau_w = -params[:, 9] can yield a negative or near-zero time constant when the inference posterior places params[:, 9] \u2265 0. The exponential Euler update `Exp(-tstep / tau_w)` then diverges (grows) instead of decaying, making the M-current gate unstable and the voltage trace non-physical. This is the primary driver of the large likelihood error.",
+      "severity": "critical",
+      "location": "Line `tau_w = -params[:, 9].float()` and the M-current gate update `w[:, i] = w_ss + (w_prev - w_ss) * Exp(-tstep / tau_w)`",
+      "suggestion": "Enforce positivity inside the forward pass regardless of sign convention. Replace `tau_w = -params[:, 9].float()` with `tau_w = torch.abs(params[:, 9].float()) + 1e-3` (or `torch.nn.functional.softplus(params[:, 9].float()) + 1e-3`). This guarantees tau_w > 0 and matches the biologically expected range of 20\u2013300 ms for IKM without requiring the inference to produce specifically negative raw parameters. Similarly audit E_leak, Vt, and V_half_M negation conventions to confirm the inference search space is consistent with the intended sign."
+    },
+    {
+      "description": "params[:, 7] (the second parameter of slot X1) is completely unused, yet it is still part of the inferred parameter vector. The M-current spreads its three parameters across both X1 and X2 slots (gbar_M at index 6, V_half_M at index 8, tau_w at index 9), leaving index 7 as dead weight. This unnecessarily expands the inference search space, wastes posterior budget, and can confuse the likelihood estimator with an irrelevant dimension.",
+      "severity": "major",
+      "location": "Parameter indexing block: `gbar_M = params[:, 6]`, unused `params[:, 7]`, `V_half_M = -params[:, 8]`, `tau_w = -params[:, 9]`",
+      "suggestion": "Consolidate the IKM parameters into a single slot. Move all three free IKM parameters into contiguous indices within one or both slots: e.g., `gbar_M = params[:, 6]`, `tau_w = params[:, 7]` (both in X1), and fix V_half_M at a biologically motivated constant (e.g., -35 mV) to stay within the two-parameter-per-slot budget. Alternatively fix tau_w at a representative value (~100 ms) and infer only gbar_M and V_half_M. This reduces the effective inference dimension, improves posterior concentration, and is consistent with the parsimony principle stated in the system description."
+    }
+  ]
+}

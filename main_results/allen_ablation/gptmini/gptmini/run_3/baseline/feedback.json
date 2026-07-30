@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator declares two extra channel slots (gbar_X1, gbar_X2 and param_i/param_j) but never incorporates them into channel kinetics, state variables, or the membrane equations. In addition, several parameter negations (E_leak, Vt, param_i, param_j) are confusing and likely invert intended signs. These omissions and sign issues prevent the model from expressing the biophysical mechanisms needed to match the held-out voltage statistics, producing the high negative log-marginal values reported.",
+  "issues": [
+    {
+      "description": "Declared additional channels (gbar_X1/gbar_X2 and parameter slots) are not used: no gating kinetics, no state variables, and no contribution to tau_V_inv or V_inf. As a result the model cannot exploit extra degrees of freedom to capture differences in resting potential, variance, skewness and spike count.",
+      "severity": "critical",
+      "location": "Editable sections: kinetics block, state variables initialization, loop where tau_V_inv/V_inf are computed (marked TODO blocks)",
+      "suggestion": "Implement exactly one extra channel (keep parsimony). Recommended: add a slow, non-inactivating potassium-like (M-type) channel on X1 to capture spike-frequency adaptation and shifts in mean/variance without generating bursting. Implementation steps: (1) treat gbar_X1 as the conductance and use E_K as reversal. (2) Add a gating variable p (shape batch_size x time_steps), initialize p[:,0] = p_inf(V[:,0]) where p_inf = 1 / (1 + exp(-(V - V_half)/k)). Map param_i -> V_half (mV) and param_j -> tau_base (ms) (or use param_j to scale tau). (3) In the loop compute p_inf and tau_p (e.g. tau_p = tau_base + 1/(exp((V - V_half)/slope) + exp(-(V - V_half)/slope)) or a simple voltage-independent tau_p = param_j). Update p with the same exponential update used for m/h/n. (4) Add gbar_X1 * p (or p^1) into tau_V_inv and gbar_X1 * p * E_K into the V_inf numerator. (5) Keep X2 unused unless further benefit is shown. This will allow the simulator to adjust spike frequency and subthreshold statistics without introducing bursting."
+    },
+    {
+      "description": "Parameter sign flips and unclear parameter usage: E_leak, Vt, param_i and param_j are negated at extraction (e.g. E_leak = -params[:,3], Vt = -params[:,4], param_i = -params[:,8]), which inverts intended signs and makes mapping between optimizer parameters and biophysical meaning confusing. nois_fact_obs is set to 0 and never tuned, while process noise 'nois_fact' is used directly in the dynamics.",
+      "severity": "major",
+      "location": "Parameter extraction block near the top of forward()",
+      "suggestion": "Remove unneeded negations and document parameter sign conventions: use E_leak = params[:,3], Vt = params[:,4], param_i = params[:,8], param_j = params[:,9] (or explicitly comment why signs are inverted). Ensure gbar_X* are clamped to positive ranges (e.g. clamp > 1e-6). Distinguish process noise from observation noise: either expose nois_fact_obs to params or set nois_fact_obs = nois_fact only if intended. Finally, validate parameter ranges (e.g. tau > 0, conductances >= 0) and consider soft-clamping (ReLU or exp) to keep parameters in physically plausible ranges to improve inference stability."
+    }
+  ]
+}

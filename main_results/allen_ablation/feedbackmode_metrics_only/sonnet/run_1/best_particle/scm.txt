@@ -1,0 +1,5 @@
+- **V**: membrane voltage driven by Na⁺, K⁺ (delayed rectifier), leak, M-type K⁺ (IM) currents + injected current + noise
+- **m, h**: Na⁺ gating (activation/inactivation) with standard HH voltage-dependent kinetics
+- **n**: K⁺ delayed-rectifier activation with standard HH kinetics
+- **p**: M-type K⁺ slow activation gate; non-inactivating, subthreshold activating, voltage-dependent steady-state
+- **Assumptions**: single-compartment; IM is persistent (no inactivation), regularizes tonic ISI without bursting; half-activation and time constant are inferred via param_i and param_j

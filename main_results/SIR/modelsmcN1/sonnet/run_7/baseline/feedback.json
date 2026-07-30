@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns the unchanged state. This means the simulator produces a flat, constant trajectory for all 60 timesteps, resulting in catastrophically bad likelihood scores (NLE ~2.67e+34).",
+  "issues": [
+    {
+      "description": "The forward function body is empty (only `...`). No SIR dynamics are implemented, so the simulator never transitions between states. The next_state is always identical to the input state, making the simulated trajectories completely unrealistic and causing the observed massive NLE values.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 the body after `next_state = state.copy()`",
+      "suggestion": "Implement a discrete-time stochastic SIR model. Use `parameters[0]` as beta (transmission rate) and `parameters[1]` as gamma (recovery rate). Compute N = S + I + R, then draw new infections via `rng.binomial(S, 1.0 - np.exp(-beta * I / N))` and new recoveries via `rng.binomial(I, gamma)`. Update: S_new = S - new_infections, I_new = I + new_infections - new_recoveries, R_new = R + new_recoveries, and return these as integer values. Example:\n\n```python\nbeta, gamma = parameters[0], parameters[1]\nS, I, R = state['S'], state['I'], state['R']\nN = S + I + R\nif N == 0 or I == 0:\n    return state.copy()\np_infection = 1.0 - np.exp(-beta * I / N)\nnew_infections = rng.binomial(S, np.clip(p_infection, 0, 1))\nnew_recoveries = rng.binomial(I, np.clip(gamma, 0, 1))\nnext_state = {'S': int(S - new_infections), 'I': int(I + new_infections - new_recoveries), 'R': int(R + new_recoveries)}\nreturn next_state\n```"
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. This can cause silent failures during simulation-based inference when the optimizer probes the model.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__",
+      "suggestion": "Add a default parameter initialization in `__init__`, for example: `self.parameters = np.array([0.3, 0.1])` (reasonable defaults for beta and gamma in a COVID SIR model), so the simulator is always in a valid state before `set_parameters` is explicitly called."
+    }
+  ]
+}

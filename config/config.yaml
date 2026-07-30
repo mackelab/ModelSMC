@@ -1,0 +1,22 @@
+name: dev
+seed: 10
+delete_dspy_cache: True
+logging:
+  level: "INFO" # "DEBUG" "INFO"
+
+# Output directory for results
+hydra:
+  run:
+    dir: results/${name}/${now:%Y-%m-%d-%H-%M-%S}
+  sweep:
+    dir: results/${name}/${now:%Y-%m-%d-%H-%M-%S}
+    subdir: ${hydra.job.num}  # Cap the directory name to 50 characters
+
+defaults:
+  - _self_
+  - method: smc_method
+  - task: SIR_level3
+  - llm: gpt5_mini
+  - launcher: local
+  - partition: none
+  - sweeper: none

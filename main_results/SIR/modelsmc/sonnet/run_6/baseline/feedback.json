@@ -1,0 +1,11 @@
+{
+  "main_diagnosis": "The `forward` function in SimulatorStep is completely unimplemented \u2014 it contains only `...` and returns the unchanged state. This means the simulator produces no dynamics whatsoever, which directly explains the catastrophically bad NLE scores (2.82e+28). No SIR transition logic exists.",
+  "issues": [
+    {
+      "description": "The `forward` method body is a stub (`...`) and simply returns `next_state = state.copy()` without any SIR epidemic dynamics. The two parameters (\u03b2, \u03b3) are never used, so the simulator produces a flat, unchanging trajectory regardless of parameter values. This makes simulation-based inference completely impossible and is the sole cause of the extreme metric failure.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 lines after `next_state = state.copy()`",
+      "suggestion": "Implement discrete-time stochastic SIR dynamics using the two parameters as \u03b2 (transmission rate) and \u03b3 (recovery rate). Compute N = S + I + R, then use binomial draws: new_infections = rng.binomial(S, 1 - exp(-\u03b2 * I / N)) and new_recoveries = rng.binomial(I, \u03b3). Update S -= new_infections, I += new_infections - new_recoveries, R += new_recoveries, clamp all to [0, N]. Example:\n\n```python\nN = state['S'] + state['I'] + state['R']\nbeta, gamma = parameters[0], parameters[1]\nif N == 0:\n    return state.copy()\np_infect = 1.0 - np.exp(-beta * state['I'] / N)\nnew_infections = int(rng.binomial(state['S'], np.clip(p_infect, 0, 1)))\nnew_recoveries = int(rng.binomial(state['I'], np.clip(gamma, 0, 1)))\nnext_state = {\n    'S': state['S'] - new_infections,\n    'I': state['I'] + new_infections - new_recoveries,\n    'R': state['R'] + new_recoveries\n}\n```"
+    }
+  ]
+}

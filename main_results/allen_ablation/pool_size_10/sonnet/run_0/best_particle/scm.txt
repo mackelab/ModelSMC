@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation via α/β kinetics
+- **n** (K⁺ gate): voltage-dependent delayed-rectifier activation
+- **p** (M-current gate): slow voltage-dependent K⁺ activation; promotes tonic regular firing
+- **Assumptions**: single-compartment, Hodgkin-Huxley formalism, conductance-based currents with exponential integration

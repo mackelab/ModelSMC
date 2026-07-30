@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The iter-116 ultra-fine candidate raw_beta=0.205 caused a significant regression from the confirmed global best NLE=-575 (raw_beta=0.20) to NLE=-608 (-33 points). The current parameters must be reverted to the confirmed optimum. The ultra-fine exploration direction (0.20 \u2192 0.21) is now excluded. The only remaining unexplored axis is ultra-fine sub-steps below 0.20, specifically in the interval (0.19, 0.20), which has not been probed at this resolution.",
+  "issues": [
+    {
+      "description": "raw_beta=0.205 in self.parameters causes a -33 point regression versus the confirmed global best raw_beta=0.20 (NLE=-575 vs NLE=-608). The ultra-fine interval (0.20, 0.21) is now empirically excluded. The parameter must be reverted to raw_beta=0.20 immediately.",
+      "severity": "critical",
+      "location": "self.parameters = np.array([0.205, 0.2], dtype=np.float64)",
+      "suggestion": "Revert raw_beta to 0.20: self.parameters = np.array([0.20, 0.2], dtype=np.float64). This restores the confirmed global best NLE=-575. Add raw_beta=0.205 and the entire interval (0.20,0.21) to the permanent exclusion registry."
+    },
+    {
+      "description": "The ultra-fine search space above raw_beta=0.20 is now fully excluded. The unexplored direction is ultra-fine sub-steps strictly below 0.20, i.e., raw_beta in (0.19, 0.20). raw_beta=0.19 gave NLE=-587 (-12 pts), but the midpoint raw_beta=0.195 has never been tested. This is the only remaining unexplored beta axis consistent with the exclusion registry.",
+      "severity": "suggestion",
+      "location": "self.parameters = np.array([0.20, 0.2], dtype=np.float64)",
+      "suggestion": "After restoring raw_beta=0.20 as the baseline, schedule a controlled single-parameter experiment with raw_beta=0.195 (midpoint between confirmed best 0.20 and excluded neighbor 0.19), keeping raw_gamma locked at 0.2. If NLE improves beyond -575, continue downward with raw_beta=0.198; otherwise add (0.19,0.20) to the exclusion registry and declare the beta axis fully saturated."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "NLE 24.2 achieved (new best, beating previous best-ever 24.8 by 0.6 nats). The iter-84 V_half_M scale revert to 0.23 at tau_p=53ms has confirmed the optimal configuration and produced a gain beyond expectation. The primary remaining structural opportunity is the hardcoded membrane capacitance C=1.0 \u00b5F/cm\u00b2, which occupies no inferred slot: params[:,7] is permanently unused and could be repurposed to infer C. A secondary untested axis is a small V_half_M additive offset at tau_p=53ms (previously explored only at tau_p=50ms).",
+  "issues": [
+    {
+      "description": "Membrane capacitance C is hardcoded at 1.0 \u00b5F/cm\u00b2 and never inferred. Variation in effective capacitance across the parameter prior would shift the voltage time constant tau_V = C / (sum of conductances), altering spike height, inter-spike interval, and the voltage variance/kurtosis summary statistics \u2014 the metrics most likely to still carry residual discrepancy. Since all X2 channel classes are exhaustively closed and params[:,7] is permanently unused, this slot is now available at zero parsimony cost. A prior centred near 1.0 \u00b5F/cm\u00b2 (e.g. log-normal with mean 1.0, std 0.3) preserves physiological plausibility while allowing identifiable inference.",
+      "severity": "major",
+      "location": "C = 1.0 (scalar assignment); affects tau_V_inv = (...) / C and V_inf = (...) / (tau_V_inv * C) in the integration loop",
+      "suggestion": "Replace `C = 1.0` with `C = params[:, 7].float()` (shape: batch_size) and update the SBI prior for params[:,7] to a log-normal or truncated-normal centred at 1.0 \u00b5F/cm\u00b2. Ensure C participates in both tau_V_inv and V_inf divisions as a (batch_size,) tensor. This is a single isolated change with no interaction with any locked axis."
+    },
+    {
+      "description": "The V_half_M additive offset axis was explored only at tau_p=50ms (iter-75: offset -2mV \u2192 NLE 26.4 at tau_p=50ms), but has never been tested at the confirmed-optimal tau_p=53ms. The NLE landscape is non-separable: the offset that degraded fit at tau_p=50ms may behave differently at tau_p=53ms, particularly since the half-activation point affects M-current activation during the inter-spike interval whose duration itself changes with tau_p.",
+      "severity": "suggestion",
+      "location": "V_half_M = -(params[:, 8].float() * 0.23) \u2014 offset term absent",
+      "suggestion": "After validating the C inference change (issue #1), test V_half_M = -(params[:, 8].float() * 0.23) + offset_mV for offset_mV in {-1.0, +1.0, +2.0} mV while holding tau_p=53ms, k_M=10.0, scale=0.23, and C fixed at 1.0. If any offset improves NLE, record it before enabling C inference so that interaction effects can be attributed correctly."
+    }
+  ]
+}

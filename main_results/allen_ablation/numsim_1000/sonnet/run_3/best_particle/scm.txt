@@ -1,0 +1,5 @@
+- **V**: membrane potential; driven by Na⁺, K⁺, leak, M-current, injected current, and noise
+- **m, h**: Na⁺ fast activation/inactivation gating; voltage-dependent, Hodgkin-Huxley kinetics
+- **n**: K⁺ delayed-rectifier activation gating; voltage-dependent, Hodgkin-Huxley kinetics
+- **p**: M-type slow K⁺ activation gating; voltage-dependent sigmoid steady-state, slow time constant controlled by param_i (half-activation) and param_j (time scale)
+- **Assumptions**: single-compartment, tonic spiking regime; M-current provides spike-frequency adaptation and stabilises resting potential without inducing bursting

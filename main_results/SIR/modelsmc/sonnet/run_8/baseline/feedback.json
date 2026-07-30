@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` contains no implementation \u2014 it simply copies and returns the unchanged state. This means the simulator produces no dynamics whatsoever, which directly explains the catastrophically large NLE values (3.53e+28 / 3.53e+30). The SIR transition logic using the two learnable parameters (\u03b2, \u03b3) must be implemented inside `forward`.",
+  "issues": [
+    {
+      "description": "The `forward` method body is empty (only `next_state = state.copy(); return next_state`). No SIR dynamics are computed, so every trajectory stays frozen at the initial condition. This makes the likelihood of any real observed trajectory essentially zero, causing the extreme NLE scores.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward (lines after the docstring)",
+      "suggestion": "Implement the discrete-time stochastic SIR update inside `forward`. Extract \u03b2 = parameters[0] and \u03b3 = parameters[1]. Compute N = S + I + R. Use binomial draws for the two flows: new_infections = rng.binomial(S, 1 - np.exp(-\u03b2 * I / N)) and new_recoveries = rng.binomial(I, 1 - np.exp(-\u03b3)). Then set next_state['S'] = S - new_infections, next_state['I'] = I + new_infections - new_recoveries, next_state['R'] = R + new_recoveries. Clamp all values to be non-negative integers. This uses the standard Reed-Frost / chain-binomial formulation which is both interpretable and consistent with discrete-day SIR epidemiological models."
+    },
+    {
+      "description": "The `parameters` attribute is never initialised in `__init__`, so calling `get_parameters()` before `set_parameters()` raises an AttributeError. Additionally, there is no enforcement that \u03b2 and \u03b3 stay in biologically valid ranges (\u03b2 > 0, 0 < \u03b3 \u2264 1), which can cause numerical issues during SBI optimisation.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and set_parameters",
+      "suggestion": "In `__init__`, add a default initialisation: `self.parameters = np.array([0.3, 0.1])`. In `set_parameters`, clip parameters to valid ranges: `self.parameters = np.clip(parameters, [1e-6, 1e-6], [1.0, 1.0])` before storing them. This prevents domain errors in the exponential expressions and ensures SBI can explore the parameter space without crashing."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# @package _global_
+
+task:
+  num_obs_train: 0
+  num_obs_valid: 1000
+  metric_to_optimize: neg_avg_log_likelihood_NLE
+  compute_parameter_estimate: false
+  optimization_direction: min
+  termination_val: 1e-5
+  plotting: True
+  learnable_summary_statistics: false
+  gt_GMM_configuration_index: 0
+  name: minimal_example_n_dim
+
+method:
+  evaluator:
+    bs_marginals: 1

@@ -1,0 +1,5 @@
+- **V** (membrane potential): driven by Na⁺, K⁺, leak, M-current X1, INaP X2; ITER-106 = ONE CRITICAL CHANGE: revert V_half_NaP from [-60,-50]mV (iter-105: NLE 26.6 massive regression) back to [-62,-48]mV (iter-90 validated: NLE 24.5 BEST; iter-100: NLE 24.8); lower bound -60mV excluded the [-62,-60]mV region where SBI posterior concentrates
+- **m, h** (Na⁺ transient); **n** (K⁺ DR); **p** (M-gate X1): gbar_M=params[:,6].float() DIRECT; tau_p_base=[100,300]ms FLAT SCALAR precomputed outside loop; V_half_M=-45mV LOCKED; k_p=10mV LOCKED; E_K_M=-90mV LOCKED ✓
+- **INaP (X2)**: gbar_NaP in [1e-4,1.5]mS/cm²; V_half_NaP REVERTED to [-62,-48]mV (`-62.0 + raw/3000*14.0`); k_NaP=5.0mV LOCKED; instantaneous Boltzmann; no ODE ✓
+- **E_K=-107.0mV LOCKED**; noise=nois_fact*randn/sqrt(dt)/(tau_V_inv*C) inside V_inf; input_current[:,i-1]; NO tau_V_inv floor; NO cosh; NO V>0 conditional; NO spurious randn ✓
+- **Rationale**: iter-105 cut off [-62,-60]mV subregion where INaP activation at -70mV rest is 12-18% — the physiologically optimal subthreshold drive; restoring [-62,-48]mV recovers posterior geometry; target NLE ≤ 24.8 ✓

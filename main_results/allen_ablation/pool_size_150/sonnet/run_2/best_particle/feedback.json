@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The additional channel parameter slots (gbar_X1, gbar_X2, param_i, param_j) are extracted from `params` but never incorporated into any editable section of the simulation loop. All EDITABLE blocks remain empty, so the model is functionally equivalent to a standard 3-channel HH model. Adding a slow M-type K\u207a current (IKm) using gbar_X1 with gating variable `p` and param_i controlling half-activation would improve fit to the tonic, regularly-spaced spiking observed in the data.",
+  "issues": [
+    {
+      "description": "gbar_X1, gbar_X2, param_i, and param_j are extracted from params but never used anywhere in the simulation. All EDITABLE sections are empty, so the model has no mechanism beyond standard HH to fit the experimental recordings, resulting in high NLE loss (~25.4 average).",
+      "severity": "critical",
+      "location": "All '# ===== BEGIN EDITABLE SECTION =====' blocks within the simulation loop (tau_V_inv, V_inf, state variable update sections)",
+      "suggestion": "Implement a slow M-type K\u207a current (I_M = gbar_X1 * p * (V - E_K)) using gating variable `p`. Define kinetics: `p_inf = 1/(1+exp(-(V - param_i)/9.0))` and `tau_p = param_j / (3.3 * exp((V - param_i)/40.0) + exp(-(V - param_i)/20.0))`. Add `p = torch.zeros(...)` as a state variable initialized to `p_inf(V[:,0])`. In each timestep, add `gbar_X1 * p[:,i-1]` to tau_V_inv and `gbar_X1 * p[:,i-1] * E_K` to V_inf's numerator, and update p similarly to n. This slow hyperpolarizing current promotes regular tonic spiking without bursting."
+    },
+    {
+      "description": "param_i and param_j are negated upon extraction (`-params[:,8]` and `-params[:,9]`) but the parameter range is stated as [1e-4, 150] and [1e-4, 3000] respectively (positive). If these represent a half-activation voltage near -35 mV and a time constant scaling factor, the negation may be intentional for E_leak-like sign convention, but for M-current kinetics the sign must be consistent with the gating equations used.",
+      "severity": "major",
+      "location": "param_i = -params[:, 8].float() and param_j = -params[:, 9].float()",
+      "suggestion": "Verify the sign convention. For M-current half-activation around -35 mV, if the inferred parameter is positive (e.g. 35), keeping the negation gives param_i \u2248 -35 mV, which is physiologically correct. Ensure the kinetics formula uses param_i directly (e.g., `p_inf = 1/(1+exp(-(V - param_i)/9.0))` with param_i \u2248 -35). If param_j is meant as a positive time constant scale, consider using `torch.abs(param_j)` or removing the negation and adjusting the prior bounds accordingly."
+    }
+  ]
+}

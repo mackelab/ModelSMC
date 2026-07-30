@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, and input current
+- **m, h** (Na⁺ gates): fast activation/inactivation, depend on V and Vt
+- **n** (K⁺ gate): delayed rectifier, depends on V and Vt
+- **p** (M-current gate): slow muscarinic K⁺ gate, depends on V, param_i (half-activation), param_j (time constant scale)
+- **Assumptions**: single-compartment, exponential gating updates, Euler-exponential integration, additive noise

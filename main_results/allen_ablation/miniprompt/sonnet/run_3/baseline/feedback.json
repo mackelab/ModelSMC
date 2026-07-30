@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator is missing one or more ion channel(s) that modulate subthreshold and adaptation dynamics. The high neg_avg_log_marginal_NLE (~26.5) indicates the model cannot match experimental voltage traces, most likely because a slow K+ adaptation current (M-current, I_M) is absent. The parameters gbar_X1, param_i, and param_j are available but unused in channel kinetics, tau_V_inv, and V_inf computations.",
+  "issues": [
+    {
+      "description": "Missing M-current (slow muscarinic K+ channel) gating variable and kinetics. Without I_M, the model cannot reproduce spike-frequency adaptation or correct subthreshold oscillations. The relevant unused parameters are gbar_X1 (conductance), param_i (half-activation voltage offset), and param_j (time constant scaling).",
+      "severity": "critical",
+      "location": "All '# BEGIN EDITABLE SECTION' blocks: kinetics definition, state variable declaration, initialization, loop body (alpha/beta computation, tau_V_inv, V_inf, state update)",
+      "suggestion": "Add M-current with a single slow gating variable `p`. In the kinetics section add:\n```python\ndef p_inf(x):\n    return 1.0 / (1.0 + Exp(-(x - param_i) / 10.0))\ndef tau_p_gate(x):\n    return torch.abs(param_j) / (3.3 * Exp((x - param_i) / 20.0) + Exp(-(x - param_i) / 20.0))\n```\nDeclare `p = torch.zeros((batch_size, time_steps), device=device)` and initialize `p[:, 0] = p_inf(V[:, 0])`. In the loop, add to tau_V_inv: `+ p[:, i-1] * gbar_X1`, add to V_inf numerator: `+ p[:, i-1] * gbar_X1 * E_K`, and update: `p[:, i] = p_inf(V[:, i-1]) + (p[:, i-1] - p_inf(V[:, i-1])) * Exp(-tstep / tau_p_gate(V[:, i-1]))`."
+    },
+    {
+      "description": "gbar_X2 and the second channel slot are currently not used. Since the instructions say to keep the model simple and only add one channel if necessary, verify after adding I_M whether gbar_X2 is still needed. Leaving it unused wastes a degree of freedom and may confuse parameter inference.",
+      "severity": "suggestion",
+      "location": "params[:, 7] extraction line and all editable sections",
+      "suggestion": "After adding the M-current and re-evaluating metrics, if the neg_avg_log_marginal_NLE drops significantly, do not add a second channel (gbar_X2). If residual discrepancy persists, consider adding an h-current (HCN, hyperpolarization-activated) using gbar_X2 with a negative reversal potential near param_i, as it affects pacemaking and rebound bursting. Only add it if performance metrics justify the added complexity."
+    }
+  ]
+}

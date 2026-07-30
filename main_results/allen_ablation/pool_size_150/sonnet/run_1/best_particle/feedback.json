@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The M-current alpha/beta formulation has a critical asymmetry: at the supposed half-activation voltage (v1=0), alpha_p=1e-3/0.1=0.01 while beta_p=1e-3*1=0.001, giving p_inf\u22480.91 instead of 0.5. This means voff_M does NOT control the true half-activation point, causing inference to find a biased/compensated voff_M that degrades fit quality. The second tunable slot (params[:,7]) is also left completely unused, wasting inference capacity.",
+  "issues": [
+    {
+      "description": "Asymmetric alpha_p/beta_p formulation places p_inf\u22480.91 at v1=0 (i.e., at V=Vt+voff_M) instead of the intended p_inf=0.5. The efun(-0.1*v1)/0.1 forward rate evaluates to ~10x beta_p at v1=0, so the 'half-activation' parameter voff_M is systematically misleading. The inference engine will compensate by shifting voff_M to unrealistically large values, misrepresenting the actual M-current activation curve and degrading convergence in distribution statistics (mean, variance, skewness).",
+      "severity": "major",
+      "location": "alpha_p and beta_p functions; specifically the ratio efun(-0.1*v1)/0.1 vs 1e-3*Exp(-v1/80)",
+      "suggestion": "Use a symmetric formulation so p_inf=0.5 at v1=0: e.g., alpha_p(x) = 1e-3 * efun(-0.1*v1) / 0.1 and beta_p(x) = 1e-3 * efun(0.1*v1) / 0.1 (mirror-image efun). Alternatively, use an explicit sigmoid steady-state and independent tau: p_inf = 1/(1+Exp(-v1/10)) and tau_p = tau_scale_M / (some symmetric rate), which makes voff_M the true half-activation voltage. This gives inference unambiguous, well-scaled gradients for voff_M."
+    },
+    {
+      "description": "params[:,7] is deliberately left unused ('parsimony'), but the system has two full tunable slots available. Given NLE=24.4 still has room to improve (especially on voltage distribution statistics: variance, skewness, kurtosis), a second lightweight conductance using params[:,7] as gbar_X2 with a fixed half-activation could capture remaining residuals. For tonic spiking, a slow Ca2+-activated K+ current (SK) or a slow afterhyperpolarization (AHP) conductance with fixed kinetics would improve inter-spike potential distribution without introducing bursting.",
+      "severity": "minor",
+      "location": "params[:,7] assignment block; no X2 channel defined",
+      "suggestion": "Add a second K+ conductance using params[:,7] as its maximal conductance (e.g., gbar_SK = params[:,7]) with fixed kinetics (e.g., a simple calcium-proxy gating or a slow sigmoid activation near resting potential, e.g., p2_inf = 1/(1+exp(-(V+60)/10)) with a fixed tau of ~50 ms and E_K reversal). This adds one degree of freedom to reshape the subthreshold voltage distribution without enabling bursting, targeting the residual variance/skewness mismatch."
+    }
+  ]
+}

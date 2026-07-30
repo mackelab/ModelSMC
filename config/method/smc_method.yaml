@@ -1,0 +1,11 @@
+name: smc_method
+alpha: 0.9 #Prob of copying a particle.
+particle_pool_size: 50
+ess_threshold: 0.5
+temperature: 0.75
+feedback_mode: llm_only  # options: llm_only | metrics_only | llm_and_metrics
+
+defaults:
+  - base
+  - evaluator: base
+  - optimizer: npe_pfn

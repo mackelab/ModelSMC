@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, and injected current; Euler-exponential integration
+- **m, h** (Na⁺ gates): fast activation/inactivation, depend on V and Vt
+- **n** (K⁺ gate): delayed-rectifier activation, depends on V and Vt
+- **p** (M-current gate): slow non-inactivating K⁺ activation; p_inf sigmoid in V, tau_p = param_j; produces spike-frequency adaptation
+- **Assumptions**: single-compartment, constant reversal potentials, noise enters as current, M-current time constant is voltage-independent

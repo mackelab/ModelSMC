@@ -1,0 +1,48 @@
+# @package _global_
+name: minimal_example_no_LLM_ABC_NLE
+seed: ???
+delete_dspy_cache: True
+
+logging:
+  level: "INFO"
+
+task:
+  plotting: False
+  termination_val: null
+  num_obs_valid: 1000
+  metric_to_optimize: neg_log_marginal_NLE
+  compute_parameter_estimate: false
+
+method:
+  max_iter: 20
+  max_num_itr_no_improvement: 20
+  temperature: 1.0
+  ess_threshold: 0.5
+  particle_pool_size: 100
+  alpha: 0.8
+  optimizer:
+    num_simulations: 5000
+    plotting: false
+  evaluator:
+    evidence_estimation_mode: prior_samples
+    n_samples_evidence_estimation: 2000
+    plotting: false
+    bs_marginals: 1000
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      task.gt_GMM_configuration_index: 0, 4, 9, 14, 19
+      seed: random, random, random, random, random, random, random, random, random, random
+
+defaults:
+  - override /method: smc_method_minimal
+  - override /partition: a100_1
+  - override /launcher: slurm
+  - override /task: minimal_example_n_dim
+  - override /method/optimizer: abc
+  - override /method/evaluator: base
+  - override /method/evaluator/likelihood_estimator: NLE
+  - override /llm: dummy
+  - _self_

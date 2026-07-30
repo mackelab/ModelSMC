@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, injected current, noise
+- **m, h** (Na⁺ gates): voltage-dependent activation/inactivation → fast spike upstroke/repolarization
+- **n** (K⁺ gate): voltage-dependent delayed-rectifier → spike repolarization
+- **p** (M-current gate): slow voltage-dependent K⁺ activation → spike-frequency regularization, adaptation
+- **Assumptions**: single-compartment, tonic spiking, M-current provides subthreshold K⁺ conductance to regularize ISIs without inducing bursting

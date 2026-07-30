@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The simulator's stochastic noise model (binomial sampling) is substantially under-dispersed relative to real COVID-19 transmission dynamics, causing very poor log-likelihood scores (neg_avg_log_NLE = -408). COVID-19 exhibits strong overdispersion (k\u22480.1\u20130.5) due to superspreading events. The binomial model produces trajectories that are too tightly clustered around the mean, making the observed data appear extremely unlikely under the simulated distribution and collapsing the marginal NLE.",
+  "issues": [
+    {
+      "description": "Binomial sampling for new_infections severely underestimates variance in COVID transmission. COVID-19 is well-documented to follow a negative binomial (overdispersed) process with dispersion parameter k << 1. Using Binomial(S, p_inf) forces variance = S*p*(1-p), whereas empirical COVID variance is far larger. This mismatch causes the likelihood estimator to assign near-zero probability to observed trajectories, directly explaining the catastrophic NLE scores.",
+      "severity": "critical",
+      "location": "forward() \u2014 new_infections = int(rng.binomial(n=S, p=p_inf)) and new_recoveries = int(rng.binomial(n=I, p=p_rec))",
+      "suggestion": "Replace both binomial draws with negative binomial sampling to introduce overdispersion. Add a third parameter `k` (dispersion, default ~0.5) to self.parameters (shape (3,)). For infections: mean_inf = S * p_inf; var_inf = mean_inf + mean_inf**2 / k; p_nb = k / (k + mean_inf); new_infections = int(rng.negative_binomial(k, p_nb)). Clip new_infections to [0, S]. Do the same for recoveries. This aligns the simulator noise model with empirically observed COVID overdispersion and will dramatically improve NLE."
+    },
+    {
+      "description": "Using p_inf = 1 - exp(-beta*I/N) instead of the standard discrete-time SIR formula p_inf = beta*I/N introduces a nonlinear bias at moderate-to-high infection prevalence. While the exponential approximation is valid only when beta*I/N << 1, during an epidemic peak this assumption breaks down, causing systematic underestimation of new infections and distorting the inferred beta during SBI optimization. This makes parameter recovery harder and biases the trajectory distribution away from the training data.",
+      "severity": "major",
+      "location": "forward() \u2014 force_of_infection and p_inf computation",
+      "suggestion": "Replace with the direct discrete-time formula: p_inf = float(np.clip(beta * float(I) / float(N), 0.0, 1.0)). This matches the standard stochastic SIR formulation, ensures p_inf is linear in beta (aiding SBI gradient-based optimization), and avoids the exponential saturation bias near epidemic peaks. Similarly simplify p_rec = float(np.clip(gamma, 0.0, 1.0)) to keep the recovery probability directly equal to gamma."
+    }
+  ]
+}

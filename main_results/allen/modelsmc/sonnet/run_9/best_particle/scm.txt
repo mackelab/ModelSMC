@@ -1,0 +1,5 @@
+- **V**: membrane potential driven by Na⁺, K⁺, leak, M-current (slow K⁺), and injected current
+- **m, h**: fast Na⁺ activation/inactivation; **n**: delayed-rectifier K⁺ activation — standard α/β kinetics
+- **p**: M-current (I_M) slow activation gate; steady-state sigmoid + bell-shaped voltage-dependent τ
+- **param_i → V_half_M** (half-activation, mV); **param_j → τ_max_M** (peak time constant, ms)
+- **Assumptions**: single compartment; I_M provides tonic spike-frequency adaptation without bursting; X2 slot unused (parsimony)

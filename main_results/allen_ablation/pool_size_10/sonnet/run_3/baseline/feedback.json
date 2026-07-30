@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The two additional channel slots (X1, X2) have their parameters extracted from `params` but are never implemented in the simulation. All TODO sections remain empty, so the model is running as a plain 3-variable HH neuron while the inference engine wastes capacity trying to fit `gbar_X1`, `gbar_X2`, `param_i`, and `param_j` that have zero effect on the output voltage. This explains the high NLE (~25.8 avg), as the model cannot reproduce the tonic spiking statistics (especially spike count, mean/variance during stimulation) without additional ionic mechanisms.",
+  "issues": [
+    {
+      "description": "Parameters gbar_X1, gbar_X2, param_i, param_j are extracted but never used \u2014 the editable TODO sections are all empty. This means the simulator ignores 4 of its 10 inferred parameters, making inference ill-posed and preventing the model from matching the observed tonic spiking dynamics.",
+      "severity": "critical",
+      "location": "All `# ===== BEGIN EDITABLE SECTION =====` blocks inside the simulation loop and state-variable sections",
+      "suggestion": "Implement a slow M-type potassium current (KM) using X1 slot: add gating variable `p` with kinetics `p_inf = 1/(1+exp(-(V - param_i)/10))` and `tau_p = param_j / (3.3 * (exp((V-param_i)/40) + exp(-(V-param_i)/20)))`, then add `gbar_X1 * p` to `tau_V_inv` and `gbar_X1 * p * E_K` to `V_inf`. Initialize `p[:,0] = p_inf(V[:,0])` and update `p[:,i]` with the exponential Euler step each iteration. This slow repolarizing current will regularize tonic firing without introducing bursting, directly targeting the spike-count and stimulation-period voltage statistics."
+    },
+    {
+      "description": "The sign conventions for param_i and param_j are inverted at extraction (`param_i = -params[:,8]`, `param_j = -params[:,9]`), yet the prior states params are positive in [1e-4, 150] and [1e-4, 3000]. If these are used as half-activation voltages or time-constant scales they will be forced negative, which may push kinetics into non-physiological regimes (e.g., half-activation at large negative voltages far from spike threshold).",
+      "severity": "major",
+      "location": "Lines `param_i = -params[:, 8].float()` and `param_j = -params[:, 9].float()`",
+      "suggestion": "Remove the negation: use `param_i = params[:, 8].float()` and `param_j = params[:, 9].float()`. Then offset to physiological range inside the kinetics, e.g., half-activation voltage `V_half = param_i - 75.0` (shifting a [0,150] range to [-75, 75] mV) and time-constant scale `tau_scale = param_j / 100.0`. This ensures the inference engine can explore physically meaningful parameter values."
+    }
+  ]
+}

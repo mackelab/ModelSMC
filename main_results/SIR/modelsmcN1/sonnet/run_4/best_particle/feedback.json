@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The COVID-realistic parameter narrowing (beta in 0.05-0.50, gamma in 0.05-0.15) introduced in Iter-103 is causing catastrophic NLE of -600, worse than Iter-84's wide-range baseline of -56.7. Ironically, restricting the prior too aggressively is preventing SBI from exploring parameter combinations that match the observed training trajectories. The gamma floor of 0.05 and ceiling of 0.15 is the most likely culprit: if the observed data has trajectories requiring gamma < 0.05 (slower recovery, longer epidemic) or beta > 0.50, the simulator cannot reproduce them, placing near-zero likelihood on all observed samples. The empirical record shows every prior-narrowing attempt with the exponential formula also failed (Iter-102 with 0.02-0.77 -> NLE -565), suggesting that the specific ranges from Iter-84 ('wide ranges', NLE -56.7) need to be restored exactly rather than overriding them with physiological constraints.",
+  "issues": [
+    {
+      "description": "The gamma range (0.05, 0.15) is excessively restrictive. Constraining gamma to a minimum of 0.05 means recovery periods cannot exceed 20 days. If any observed trajectory has a longer epidemic tail requiring slower recovery (gamma ~ 0.02-0.04) or faster resolution (gamma > 0.15), the model assigns zero likelihood. The Iter-84 baseline used 'wide ranges' for gamma and achieved NLE -56.7; the current COVID-narrowed gamma range collapsed performance to -600.",
+      "severity": "critical",
+      "location": "forward() method: gamma = 0.05 + 0.10 * sig1 (range 0.05-0.15)",
+      "suggestion": "Widen gamma range to approximately (0.02, 0.20): use gamma = 0.02 + 0.18 * sig1. This restores wider coverage matching the Iter-84 baseline while still bounding R0 reasonably. Recovery period range becomes 5 to 50 days, covering subclinical to prolonged COVID infections. Additionally widen beta slightly: beta = 0.05 + 0.40 * sig0 (range 0.05-0.45) to give R0 = beta/gamma range from 0.25 to 22.5 \u2014 wider than the failed COVID ranges but tighter than the 0.02-0.77 catastrophe of Iter-102."
+    },
+    {
+      "description": "The sigmoid-based parameter transforms create a nonlinear mapping between SBI's unconstrained parameter space (theta0, theta1) and (beta, gamma). With very narrow target ranges (gamma span of only 0.10, beta span of 0.45), most of the sigmoid's dynamic range maps to the flat saturation regions, effectively compressing the usable parameter space and making SBI posterior estimation numerically degenerate. Small changes in theta near saturation produce negligible changes in gamma/beta, causing gradient-free SBI samplers to stall.",
+      "severity": "major",
+      "location": "forward() method: sig0, sig1 sigmoid transforms and subsequent affine maps",
+      "suggestion": "Ensure the affine scale factors are large enough to keep the sigmoid operating in its linear regime for typical SBI parameter values. With gamma = 0.02 + 0.18 * sig1 and beta = 0.05 + 0.40 * sig0, the wider span reduces saturation sensitivity. Alternatively, use a simpler softplus or clipped-linear transform instead of sigmoid to provide more uniform sensitivity across the parameter range: e.g., beta = np.clip(0.05 + 0.10 * theta0, 0.05, 0.50) and gamma = np.clip(0.05 + 0.03 * theta1, 0.02, 0.20) so the mapping is approximately linear near the prior center."
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+particle_index,log_weight,folder,particle_id,neg_avg_log_marginal_NLE,neg_log_marginal_NLE,timeout_evidence_estimation
+14,-245.48129272460938,iter-14_p14,14d6296a-37e9-42fc-b2fe-2b3129592c34,24.54813003540039,245.48129272460938,False

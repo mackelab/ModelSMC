@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The `forward` function in `SimulatorStep` is completely unimplemented \u2014 it contains only a placeholder (`...`) and returns the unchanged state. This means every simulation step is a no-op, which explains the catastrophically poor NLE scores (~6.61e+28). No SIR transition dynamics are applied whatsoever.",
+  "issues": [
+    {
+      "description": "The forward function contains no SIR model logic. It simply copies and returns the current state unchanged. The two parameters (beta=transmission rate, gamma=recovery rate) are never used. As a result, all 60-step trajectories are flat (S, I, R never change), which makes the likelihood of any real observed trajectory essentially zero, producing enormous negative log-likelihood values.",
+      "severity": "critical",
+      "location": "SimulatorStep.forward \u2014 the body after `next_state = state.copy()`",
+      "suggestion": "Implement the discrete stochastic SIR dynamics inside `forward`. Compute N = S + I + R. Use binomial draws for new infections and recoveries: `new_infected = rng.binomial(S, 1 - np.exp(-parameters[0] * I / N))` and `new_recovered = rng.binomial(I, parameters[1])`. Then update: `next_S = S - new_infected`, `next_I = I + new_infected - new_recovered`, `next_R = R + new_recovered`. Return `{'S': int(next_S), 'I': int(next_I), 'R': int(next_R)}`. This gives a realistic, stochastic, integer-valued SIR step consistent with population-level COVID dynamics."
+    },
+    {
+      "description": "The `parameters` attribute is never initialized in `__init__`, so calling `get_parameters()` before `set_parameters()` will raise an AttributeError. Additionally, there is no validation or bounding of parameter values (beta and gamma should be in (0,1) for a daily discrete model), which can cause instability during SBI optimization.",
+      "severity": "major",
+      "location": "SimulatorStep.__init__ and SimulatorStep.set_parameters",
+      "suggestion": "Initialize `self.parameters = np.array([0.3, 0.1])` (reasonable COVID priors) in `__init__`. In `set_parameters`, clip or sigmoid-transform the incoming parameters to valid ranges, e.g. `self.parameters = np.clip(parameters, 1e-6, 1.0 - 1e-6)`, to prevent beta or gamma from becoming 0 or 1, which would break the binomial sampling and produce degenerate trajectories."
+    }
+  ]
+}

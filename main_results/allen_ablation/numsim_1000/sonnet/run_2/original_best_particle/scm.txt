@@ -1,0 +1,5 @@
+- **V** (membrane voltage): driven by Na⁺, K⁺, leak, M-current, and injected current
+- **m, h** (Na⁺ gating): fast voltage-dependent activation/inactivation (standard HH)
+- **n** (K⁺ delayed-rectifier): voltage-dependent activation (standard HH)
+- **p** (M-current / Kv7): slow non-inactivating K⁺ gate; tunes ISI regularity without bursting
+- **Assumptions**: single-compartment Cm=1 µF/cm²; M-current uses tunable E_M (param_i) and fixed tau_p (param_j in ms) for full parametric control of a single channel

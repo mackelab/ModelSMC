@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The parameter clamping inside `forward` (beta\u2208[0.05,0.60], gamma\u2208[0.04,0.20]) is destroying gradient signal and preventing SBI from finding the true parameters when they lie outside these hard limits. With neg_avg_log_marginal_NLE of -509 per trajectory the simulator trajectories are systematically misaligned with observed data, which is the hallmark symptom of over-constrained parameter ranges blocking the posterior from being found.",
+  "issues": [
+    {
+      "description": "Hard np.clip on both beta and gamma inside forward() creates flat likelihood plateaus that cripple simulation-based inference. If the true beta or gamma even slightly exceeds these narrow bounds, every SBI proposal outside the clip region produces an identical (wrong) trajectory, making the likelihood surface uninformative and causing the massive negative NLE. The bounds [0.05,0.60] for beta and [0.04,0.20] for gamma are too narrow \u2014 COVID-19 superspreader scenarios, interventions, or variant data can push beta above 0.60 and gamma below 0.04 (>25 day infectious period).",
+      "severity": "critical",
+      "location": "forward() \u2014 lines: beta = float(np.clip(parameters[0], 0.05, 0.60)) and gamma = float(np.clip(parameters[1], 0.04, 0.20))",
+      "suggestion": "Remove the np.clip calls on beta and gamma inside forward(). Instead apply only a soft positivity guard (e.g., beta = max(float(parameters[0]), 1e-6); gamma = max(float(parameters[1]), 1e-6)) so the SBI optimizer can freely explore the full parameter space. Any necessary prior bounds should be enforced in the SBI prior definition, not inside the forward model, so likelihood gradients remain informative everywhere."
+    },
+    {
+      "description": "The recovery cap `max_recoveries = I + new_infections` is biologically incorrect and inflates the recovered compartment. People who just became infected in this very step (new_infections) cannot also recover in the same step. Drawing new_recoveries from Binomial(n=I, ...) already guarantees new_recoveries \u2264 I, making the cap `I + new_infections` superfluous and occasionally allowing too many recoveries, which compresses the I peak and shifts the epidemic curve \u2014 directly worsening NLE against real data.",
+      "severity": "major",
+      "location": "forward() \u2014 line: max_recoveries = I + new_infections",
+      "suggestion": "Change `max_recoveries = I + new_infections` to `max_recoveries = I`. Since new_recoveries is drawn from Binomial(n=I, p=p_recover), it is already bounded by I, so the cap becomes a simple safety guard `new_recoveries = int(min(new_recoveries, I))`. This ensures the epidemic peak height and duration are modelled correctly, improving trajectory fidelity and NLE."
+    }
+  ]
+}

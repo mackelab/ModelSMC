@@ -1,0 +1,17 @@
+{
+  "main_diagnosis": "The primary failure mode is a state-dependent noise scaling bug in the voltage integration step (V_inf computation, inside the time loop). The stochastic current term is divided by `tau_V_inv * C` (i.e., total conductance g_total), making the effective noise amplitude inversely proportional to membrane conductance. At rest, when only leak is active and g_total is small, noise is strongly amplified; during spikes, when Na+/K+ conductances are large, noise is suppressed. This incorrect modulation distorts all resting-potential statistics (mean, SD) and voltage-distribution statistics (variance, skewness, kurtosis) simultaneously, preventing the inference from finding parameters that match the experimental summary statistics regardless of the M-current configuration.",
+  "issues": [
+    {
+      "description": "Noise term is placed inside the V_inf numerator and then divided by `tau_V_inv * C`, giving effective noise = `nois_fact * randn / (sqrt(dt) * g_total)`. This makes noise amplitude state-dependent (large at rest, small during spikes), corrupting the resting SD, voltage variance, skewness, and kurtosis statistics. The noise should instead be added directly and additively to the voltage after the exponential integration step, so it enters as `nois_fact * randn * sqrt(dt) / C`, independent of instantaneous conductance state.",
+      "severity": "critical",
+      "location": "Inside the time loop, V_inf formula: `+ nois_fact * torch.randn(...) / (tstep ** 0.5)` in the numerator before dividing by `(tau_V_inv * C)`",
+      "suggestion": "Remove the noise term from the V_inf numerator. After computing `V[:, i] = V_inf + (V_prev - V_inf) * Exp(-tstep * tau_V_inv)`, add noise additively: `V[:, i] = V[:, i] + nois_fact * torch.randn(batch_size, generator=generator, device=device) * (tstep ** 0.5) / C`. This gives correct additive current-noise integration where the voltage perturbation per step is `I_noise * dt / C`, independent of membrane conductance."
+    },
+    {
+      "description": "The M-current half-activation voltage parameterisation (`V_half_w = params[:,8] - 75.0`) maps the raw prior [1e-4, 150] to [-75, +75] mV, placing the physiologically relevant range (~-60 to -40 mV, i.e. params[:,8] ~ 15-35) near the lower quarter of the prior support. Combined with a very wide tau_w prior (up to 3000 ms), inference can easily land in degenerate regimes where either V_half_w >> resting potential (channel never activates) or tau_w ~ 3000 ms (channel frozen). This makes the M-current effectively silent over much of the prior, reducing the model to standard HH and failing to improve statistics beyond the baseline.",
+      "severity": "major",
+      "location": "Parameter extraction section: `V_half_w = params[:, 8].float() - 75.0` and `tau_w = params[:, 9].float()`",
+      "suggestion": "Reparameterise to concentrate prior mass on physiologically active regimes. For V_half_w, use `V_half_w = params[:, 8].float() * 0.4 - 65.0` so that raw [1e-4, 150] maps to approximately [-65, -5] mV, centred near -40 mV. For tau_w, apply a log-scale mapping: `tau_w = torch.exp(params[:, 9].float() * 0.002 * torch.log(torch.tensor(3000.0)))` or simply clamp the upper end to 500 ms with `tau_w = torch.clamp(params[:, 9].float(), min=20.0, max=500.0)` to keep adaptation in the physiologically relevant 20-300 ms range where it actually modulates tonic spike-rate statistics."
+    }
+  ]
+}
