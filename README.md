@@ -1,7 +1,10 @@
 # ModelSMC
 
-Code release accompanying [Wahl, Schenk, Farnoud, Macke & Gedon (2026), *A Probabilistic
-Framework for LLM-Based Model Discovery*](https://arxiv.org/abs/2602.18266).
+Code release accompanying *A Probabilistic Framework for LLM-Based Model Discovery* by
+Stefan Wahl, Raphaela Schenk, Ali Farnoud, Jakob H. Macke and Daniel Gedon
+([OpenReview](https://openreview.net/forum?id=356U11JaTS),
+[arXiv](https://arxiv.org/abs/2602.18266),
+[ICML 2026](https://icml.cc/virtual/2026/poster/66508)).
 
 This repository contains the ModelSMC implementation, the benchmark tasks used in the
 paper, and the code and recorded results needed to reproduce its figures and tables.
@@ -215,14 +218,13 @@ itself, or in a `NOTICE` file covering the directory it sits in and everything b
 
 ## Citation
 
-```
-@misc{wahl2026probabilisticframeworkllmbasedmodel,
-      title={A Probabilistic Framework for LLM-Based Model Discovery}, 
-      author={Stefan Wahl and Raphaela Schenk and Ali Farnoud and Jakob H. Macke and Daniel Gedon},
-      year={2026},
-      eprint={2602.18266},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2602.18266}, 
+```bibtex
+@inproceedings{wahl2026a,
+  title     = {A Probabilistic Framework for {LLM}-Based Model Discovery},
+  author    = {Wahl, Stefan and Schenk, Raphaela and Farnoud, Ali and
+               Macke, Jakob H. and Gedon, Daniel},
+  booktitle = {Forty-third International Conference on Machine Learning},
+  year      = {2026},
+  url       = {https://openreview.net/forum?id=356U11JaTS},
 }
 ```
